@@ -27,7 +27,8 @@
 <body>
 <p>loading</p>
 <div id="CorrSlider"></div><h2>Correlation threshold</h2>
-<div id="RepulsionSlider"></div><h2>Repulsion</h2><
+<div id="RepulsionSlider"></div><h2>Repulsion</h2>
+<div id="graphPlot"></div>
 
 
 <script>
@@ -45,7 +46,7 @@ var force = d3.layout.force()
     .linkDistance(30)
     .size([width, height]);
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#graphPlot").append("svg")
     .attr("width", width)
     .attr("height", height);
 
@@ -73,7 +74,7 @@ function RedrawGraph()
           .attr("class", "link")
           .style("stroke-width", function(d) { if (d.value < threshold) { return 0 } else { return Math.sqrt(d.value/100) }})
           .transition()
-          .attr("x1", function(d) { console.log(d.source); return d.source.x; })
+          .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
           .attr("x2", function(d) { return d.target.x; })
           .attr("y2", function(d) { return d.target.y; });
@@ -94,10 +95,19 @@ function RedrawGraph()
       .attr("class", "node")
       .attr("r", 5)
       .style("fill", function(d) { return color(d.group); })
+      .on("click", click)
       .call(force.drag);
 
     node.append("title")
       .text(function(d) { return d.name; });
+
+    node.transition()
+      .attr("class", "node")
+      .attr("r", 5)
+      .style("fill", function(d) { return color(d.group); });
+
+    node.exit().transition()
+      .remove()
 
     force.on("tick", function() {
         link.attr("x1", function(d) { return d.source.x; })
@@ -130,6 +140,13 @@ $( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow",
                       RedrawGraph()
                     }
                   });
+
+function click(d)
+{
+  d.group = d.group + 1;
+  console.log(d.group);
+  RedrawGraph();
+}
 
 
 </script>
