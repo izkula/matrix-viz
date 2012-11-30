@@ -37,12 +37,12 @@ var width = 960,
     height = 750;
 
 var threshold = 50;
-
+var initCharge = -25
 
 var color = d3.scale.category20();
 
 var force = d3.layout.force()
-    .charge(-25)
+    .charge(initCharge)
     .linkDistance(30)
     .size([width, height]);
 
@@ -52,11 +52,9 @@ var svg = d3.select("#graphPlot").append("svg")
 
 var data  = 0
 d3.json("nodelinks.json", function(error, graph) {
-  
   data = graph
   filt_links = graph.links.filter(function(element){
           return(element.value >= threshold)})
-
   RedrawGraph()  
 });
 
@@ -123,6 +121,7 @@ function RedrawGraph()
 }
 
 $( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
+                      value: threshold,
                       change: function(event, ui) {
                       threshold = ui.value;
                       console.log(threshold)
@@ -134,8 +133,8 @@ $( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow",
                   });
 
 $( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
+                      value: -initCharge,
                       change: function(event, ui) {
-                     
                       force.charge(-ui.value);
                       RedrawGraph()
                     }
@@ -143,9 +142,15 @@ $( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow",
 
 function click(d)
 {
-  d.group = d.group + 1;
-  console.log(d.group);
-  RedrawGraph();
+  if (d3.event.shiftKey) {
+    d.group = d.group - 1;
+    console.log(d.group);
+    RedrawGraph();
+  } else {
+    d.group = d.group + 1;
+    console.log(d.group);
+    RedrawGraph();
+  }
 }
 
 

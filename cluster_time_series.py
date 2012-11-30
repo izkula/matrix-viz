@@ -6,6 +6,9 @@ import scipy.cluster.hierarchy as hrc
 import pylab
 import json
 
+
+#clusters contain: 'members', 'level', 'timeSeries'
+
 def LoadData():
     if(len(sys.argv) > 1):
         outfile = sys.argv[1]
@@ -163,6 +166,14 @@ def FindMax(v, i=-1): #skips the i'th entry
 
     return [m, mj]
 
+
+#Given a vector with n entries, where n = the number of neurons (or clusters) at this level, corresponding
+# to the index of the most closely related neuron (or cluster)
+# This groups them sequentially. Starting at the beginning, if the closest neighbor
+# has already been assigned to a cluster, then that neuron joins that cluster, and if
+# not, then it forms a new cluster.
+# Returns clusterIndices: vector of length n where each entry is the cluster to which that neuron belongs
+# and clusterCount = the number of clusters
 def ClusterByClosestNeighbor(closestNeighbors, lastClusterID):
     clusterIndices = [0]*len(closestNeighbors)
     clusterCount = 0
@@ -192,6 +203,18 @@ def RelateAllClusters(AllClusters):
     W = np.corrcoef(A.T)
     return W
 
+# Starts at the topmost cluster, and traverses down the hierarchy, labeling the 'parent' of each cluster
+def GetClusterParents(AllClusters):
+    for i in range(len(AllClusters)-1, -1, -1):
+        cluster = AllClusters[str(i)]
+        if (i == range(len(AllClusters) - 1)):
+            AllClusters[str(i)]['parent'] = i
+        children = cluster['members']
+        print "children", children
+        for j in range(len(children)):
+            if i != j:
+                AllClusters[str(children[j])]['parent'] = i
+
 
 #Make a relationship matrix by clustering
 #input: matrix with time series as the columns (A[:, i])
@@ -217,18 +240,21 @@ def ClusterByCorrelation(A):
             closestNeighbors.append(mindex)
 
         [clusterIndices, clusterCount] = ClusterByClosestNeighbor(closestNeighbors, lastClusterID)
-        #print "clusterIndices", clusterIndices
+        if level > 8:
+            print "clusterIndices", clusterIndices
         clusterMembers = {}
-        for i in range(clusterCount): #initialize
+        for i in range(clusterCount): #initialize an array for each of the new clusters
             clusterMembers[str(i+lastClusterID)] = []
         for i in range(len(clusterIndices)): #fill
-            clusterMembers[str(clusterIndices[i])].append(i)
+            #clusterMembers[str(clusterIndices[i])].append(i)
+            clusterMembers[str(clusterIndices[i])].append(i + lastClusterID - len(clusterIndices))
+#####YOU JUST CHANGED THE LINE ABOVE THIS on Thursday 11/29 at 8:05pm
 
         #now add clusters to AllClusters
         for i in range(clusterCount):
             AllClusters[str(i+lastClusterID)] = {'members':clusterMembers[str(i+lastClusterID)], 
                                                  'size':len(clusterMembers[str(i+lastClusterID)]),
-                                                 'level': level}
+                                                 'level': level, 'parent': -1}
 
             #print AllClusters[str(i+lastClusterID)]
         #now calculate representative time series of each cluster
@@ -260,6 +286,20 @@ def ClusterByCorrelation(A):
         print np.shape(W)
         lastClusterID += clusterCount
         print "clustersPerLevel", clustersPerLevel
+
+        #GetClusterParents(AllClusters)
+        ## Get Cluster Parents
+    for i in range(len(AllClusters)-1, -1, -1):
+        print i
+        cluster = AllClusters[str(i)]
+        if (i == range(len(AllClusters) - 1)):
+            AllClusters[str(i)]['parent'] = i
+        children = cluster['members']
+        print "children", children
+        for j in range(len(children)):
+            if i != j or AllClusters[str(children[j])]['parent'] == -1:
+                AllClusters[str(children[j])]['parent'] = i
+        #print AllClusters
 
     return [AllClusters, clustersPerLevel]
 
@@ -366,14 +406,15 @@ def  ToNodeLinkJSON(clusterInfo, threshold):
     indexToName = {}
     counter = 0
     for i in range(len(W)):
-        if clusters[str(i)]['level'] > 3: #Change this value (and two values below) to control how many levels of clustering get passed 
-            nodes.append({'name': i, 'group':clusters[str(i)]['level']})
+        if clusters[str(i)]['level'] > -1: #Change this value (and two values below) to control how many levels of clustering get passed 
+            nodes.append({'name': i, 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
+                'parent':clusters[str(i)]['parent']})
             indexToName[str(i)] = counter
             counter += 1
     for i in range(len(W)):
-        if clusters[str(i)]['level'] > 3:
+        if clusters[str(i)]['level'] > -1:
             for j in range(i):
-                if W[i][j] > threshold and clusters[str(j)]['level'] > 3:
+                if W[i][j] > threshold and clusters[str(j)]['level'] > -1:
 #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
                     links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(W[i][j]*100)})
 
@@ -420,7 +461,7 @@ if __name__ == "__main__":
    # ClusterByCorrelation(At[1])
    # ClusterByCorrelation(At[2])
 
-   # plt.show()
+    #plt.show()
    # HierarchicalCluster(data)
    # for i in range(9):
     #    HierarchicalCluster(At[i])
