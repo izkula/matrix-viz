@@ -366,14 +366,14 @@ def  ToNodeLinkJSON(clusterInfo, threshold):
     indexToName = {}
     counter = 0
     for i in range(len(W)):
-        if clusters[str(i)]['level'] < 4: #Change this value (and two values below) to control how many levels of clustering get passed 
+        if clusters[str(i)]['level'] > 3: #Change this value (and two values below) to control how many levels of clustering get passed 
             nodes.append({'name': i, 'group':clusters[str(i)]['level']})
             indexToName[str(i)] = counter
             counter += 1
     for i in range(len(W)):
-        if clusters[str(i)]['level'] < 4:
+        if clusters[str(i)]['level'] > 3:
             for j in range(i):
-                if W[i][j] > threshold and clusters[str(j)]['level'] < 4:
+                if W[i][j] > threshold and clusters[str(j)]['level'] > 3:
 #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
                     links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(W[i][j]*100)})
 

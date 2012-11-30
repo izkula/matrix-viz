@@ -4,13 +4,16 @@
 <head>
   <script src="http://d3js.org/d3.v3.min.js"></script>
   <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css">
-  <style>#slider { margin: 10px; width: 150px; }  </style>
+  <style>#CorrSlider { margin: 10px; width: 150px; float: left;}  </style>
+  <style>#RepulsionSlider { margin: 10px; width: 150px; float: left; }  </style>
+
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
   <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
 </head>
 <style>
 
 .node {
+  cursor: pointer;
   stroke: #fff;
   stroke-width: 1.5px;
 }
@@ -23,7 +26,9 @@
 </style>
 <body>
 <p>loading</p>
-<div id="slider"></div>
+<div id="CorrSlider"></div><h2>Correlation threshold</h2>
+<div id="RepulsionSlider"></div><h2>Repulsion</h2><
+
 
 <script>
 
@@ -36,7 +41,7 @@ var threshold = 50;
 var color = d3.scale.category20();
 
 var force = d3.layout.force()
-    .charge(-25*threshold/100)
+    .charge(-25)
     .linkDistance(30)
     .size([width, height]);
 
@@ -48,44 +53,81 @@ var data  = 0
 d3.json("nodelinks.json", function(error, graph) {
   
   data = graph
+  filt_links = graph.links.filter(function(element){
+          return(element.value >= threshold)})
+
+  RedrawGraph()  
+});
+
+function RedrawGraph()
+{
   force
-      .nodes(graph.nodes)
-      .links(graph.links.filter(function(element){
-          return(element.value >= threshold)}))
+      .nodes(data.nodes)
+      .links(filt_links)
       .start();
 
-  var link = svg.selectAll("line.link")
-      .data(graph.links)
-    .enter().append("line")
-      .attr("class", "link")
-      .style("stroke-width", function(d) { if (d.value < threshold) { return 0 } else { return Math.sqrt(d.value/100) }});
+      var link = svg.selectAll("line.link")
+          .data(filt_links);
 
-  var node = svg.selectAll("circle.node")
-      .data(graph.nodes)
-    .enter().append("circle")
+      link.enter().insert("line", "circle.node")
+          .attr("class", "link")
+          .style("stroke-width", function(d) { if (d.value < threshold) { return 0 } else { return Math.sqrt(d.value/100) }})
+          .transition()
+          .attr("x1", function(d) { console.log(d.source); return d.source.x; })
+          .attr("y1", function(d) { return d.source.y; })
+          .attr("x2", function(d) { return d.target.x; })
+          .attr("y2", function(d) { return d.target.y; });
+      
+      link.exit().transition()
+          .style("stroke-width", 0)
+          .attr("x1", function(d) { return d.source.x; })
+          .attr("y1", function(d) { return d.source.y; })
+          .attr("x2", function(d) { return d.target.x; })
+          .attr("y2", function(d) { return d.target.y; })
+          .remove();
+
+
+    var node = svg.selectAll("circle.node")
+      .data(data.nodes)
+
+    node.enter().append("circle")
       .attr("class", "node")
       .attr("r", 5)
       .style("fill", function(d) { return color(d.group); })
       .call(force.drag);
 
-  node.append("title")
+    node.append("title")
       .text(function(d) { return d.name; });
 
-  force.on("tick", function() {
-    link.attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
+    force.on("tick", function() {
+        link.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
 
-    node.attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
-  });
-});
+        node.attr("cx", function(d) { return d.x; })
+          .attr("cy", function(d) { return d.y; });
+    });
 
-$( "#slider" ).slider({max: 90, min: 10, animate: "slow", 
+
+}
+
+$( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
                       change: function(event, ui) {
                       threshold = ui.value;
                       console.log(threshold)
+                      filt_links = data.links.filter(function(element){
+                                      return(element.value >= threshold)})
+                      console.log("filt_links", filt_links.length)  
+                      RedrawGraph()
+                    }
+                  });
+
+$( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
+                      change: function(event, ui) {
+                     
+                      force.charge(-ui.value);
+                      RedrawGraph()
                     }
                   });
 
