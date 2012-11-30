@@ -216,6 +216,12 @@ def GetClusterParents(AllClusters):
                 AllClusters[str(children[j])]['parent'] = i
 
 
+def GetSize(AllClusters, members):
+    size = 0
+    for i in range(len(members)):
+        size += AllClusters[str(members[i])]['size']
+    return size
+
 #Make a relationship matrix by clustering
 #input: matrix with time series as the columns (A[:, i])
 def ClusterByCorrelation(A):
@@ -226,7 +232,7 @@ def ClusterByCorrelation(A):
     AllClusters = {} #Each entry is a Cluster dict
     
     for i in range(len(A[0, :])):
-        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': 1, 'size': 1, 'level':0}
+        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': 1, 'size': 1, 'level':0, 'parent':-1}
 
     W = np.corrcoef(A.T) #relationship weight matrix
     lastClusterID = len(A[0, :])
@@ -252,8 +258,10 @@ def ClusterByCorrelation(A):
 
         #now add clusters to AllClusters
         for i in range(clusterCount):
+            csize = GetSize(AllClusters, clusterMembers[str(i+lastClusterID)])
             AllClusters[str(i+lastClusterID)] = {'members':clusterMembers[str(i+lastClusterID)], 
-                                                 'size':len(clusterMembers[str(i+lastClusterID)]),
+                                                 #'size':len(clusterMembers[str(i+lastClusterID)]),
+                                                 'size': csize,
                                                  'level': level, 'parent': -1}
 
             #print AllClusters[str(i+lastClusterID)]
@@ -297,8 +305,9 @@ def ClusterByCorrelation(A):
         children = cluster['members']
         print "children", children
         for j in range(len(children)):
-            if i != j or AllClusters[str(children[j])]['parent'] == -1:
-                AllClusters[str(children[j])]['parent'] = i
+            if i != j: # or AllClusters[str(children[j])]['parent'] == -1:
+                if AllClusters[str(children[j])]['parent'] == -1:
+                    AllClusters[str(children[j])]['parent'] = i
         #print AllClusters
 
     return [AllClusters, clustersPerLevel]
@@ -408,7 +417,7 @@ def  ToNodeLinkJSON(clusterInfo, threshold):
     for i in range(len(W)):
         if clusters[str(i)]['level'] > -1: #Change this value (and two values below) to control how many levels of clustering get passed 
             nodes.append({'name': i, 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
-                'parent':clusters[str(i)]['parent']})
+                'parent':clusters[str(i)]['parent'], 'size':clusters[str(i)]['size']})
             indexToName[str(i)] = counter
             counter += 1
     for i in range(len(W)):
