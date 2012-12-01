@@ -66,7 +66,7 @@ var width = 960,
 var threshold = 50;
 var initCharge = -25
 
-var color = d3.scale.category20();
+var color = d3.scale.category10();
 
 var force = d3.layout.force()
     .charge(initCharge)
@@ -131,11 +131,13 @@ function RedrawGraph()
       var node = svg.selectAll("circle.node")
           .data(filt_nodes)
 
-
       node.enter().append("circle")
         .attr("class", "node")
+        .attr("cx", function(d) {console.log("parent", d.children[0].x); return d.parent.x})
+        .attr("cy", function(d) {return d.parent.y})
         .attr("r", function(d) {console.log("size", d.size); return (d.size+ 3)/5 + 4})
-        .style("fill", function(d) { return color(d.group); })
+        //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
+        .style("fill", function(d) { return color(d.group) } )
         .on("click", click)
         .call(force.drag);
 
@@ -203,7 +205,7 @@ $( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow",
                     }
                   });
 
-$( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
+$( "#RepulsionSlider" ).slider({max: 200, min: 5, animate: "slow", 
                       value: -initCharge,
                       change: function(event, ui) {
                         force.charge(-ui.value);
