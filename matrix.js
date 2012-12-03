@@ -6,66 +6,6 @@ var threshold = 50;
 var initCharge = -25
 
 
-function initializeSliders() {
-	$( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
-                      value: threshold,
-                      change: function(event, ui) {
-                      threshold = ui.value;
-                      console.log(threshold)
-                      filt_links = data.links.filter(function(element){ 
-                                      var sourceindex = 0
-                                      var targetindex = 0
-                                      if (typeof element.source=="number") {sourceindex = element.source}
-                                      else {sourceindex = element.source.name}
-                                      if (typeof element.target=="number") {targetindex = element.target}
-                                      else {targetindex = element.target.name}
-                                      return(element.value >= threshold && 
-                                              node_dict[sourceindex] == 1 &&
-                                              node_dict[targetindex] == 1)})
-                      console.log("filt_links", filt_links.length)  
-                      RedrawGraph()
-                    }
-                  });
-
-	$( "#RepulsionSlider" ).slider({max: 200, min: 5, animate: "slow", 
-	                      value: -initCharge,
-	                      change: function(event, ui) {
-	                        force.charge(-ui.value);
-	                        RedrawGraph()
-	                       }
-	                  });
-
-
-
-	// $( "#LevelSlider" ).slider({min: 0, animate: "slow", step: 1,
-	//                       value: 0,
-	//                       change: function(event, ui) {
-	//                         force.charge(-ui.value);
-	//                         RedrawGraph()
-	//                        }
-	//                   });
-
-	$( "#LevelSlider" ).slider({min: 0, animate: "slow",
-	                            step: 1, value: 0, 
-	                            change: function(event, ui) {
-	                                level = ui.value;
-	                                console.log("level", level)
-	                                console.log("nodes.length", data.nodes.length)
-	                                for(var i=0; i < data.nodes.length; i++) {
-	                                  if (data.nodes[i]['group'] == level) {
-	                                    node_dict[i] = 1
-	                                  } else {
-	                                      node_dict[i] = 0
-	                                  }
-	                                  
-	                                }
-	                                FilterNodesAndLinks()
-	                                RedrawGraph() 
-	                           } 
-	                          });
-
-}
-
 $(function() {
 	initializeSliders();
 	console.log('inside matrix.js')
@@ -236,4 +176,66 @@ function click(d)
     FilterNodesAndLinks()
     RedrawGraph();
   }
+}
+
+
+
+function initializeSliders() {
+	$( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
+                      value: threshold,
+                      change: function(event, ui) {
+                      threshold = ui.value;
+                      console.log(threshold)
+                      filt_links = data.links.filter(function(element){ 
+                                      var sourceindex = 0
+                                      var targetindex = 0
+                                      if (typeof element.source=="number") {sourceindex = element.source}
+                                      else {sourceindex = element.source.name}
+                                      if (typeof element.target=="number") {targetindex = element.target}
+                                      else {targetindex = element.target.name}
+                                      return(element.value >= threshold && 
+                                              node_dict[sourceindex] == 1 &&
+                                              node_dict[targetindex] == 1)})
+                      console.log("filt_links", filt_links.length)  
+                      RedrawGraph()
+                    }
+                  });
+
+	$( "#RepulsionSlider" ).slider({max: 200, min: 5, animate: "slow", 
+	                      value: -initCharge,
+	                      change: function(event, ui) {
+	                        force.charge(-ui.value);
+	                        RedrawGraph()
+	                       }
+	                  });
+
+
+
+	// $( "#LevelSlider" ).slider({min: 0, animate: "slow", step: 1,
+	//                       value: 0,
+	//                       change: function(event, ui) {
+	//                         force.charge(-ui.value);
+	//                         RedrawGraph()
+	//                        }
+	//                   });
+
+	$( "#LevelSlider" ).slider({min: 0, animate: "slow",
+	                            step: 1, value: 0, 
+	                            change: function(event, ui) {
+	                                level = ui.value;
+	                                console.log("level", level)
+	                                console.log("nodes.length", data.nodes.length)
+	                                for(var i=0; i < data.nodes.length; i++) {
+	                                  if (data.nodes[i]['group'] == level) {
+	                                    node_dict[i] = 1
+	                                  } else {
+	                                      node_dict[i] = 0
+	                                  }
+	                                  
+	                                }
+	                                FilterNodesAndLinks()
+	                                RedrawGraph() 
+	                           } 
+	                          });
+
 }
