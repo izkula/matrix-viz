@@ -51,11 +51,33 @@ $(function() {
 });
 
 
-function FilterNodesAndLinks()
-{
+function FilterNodesAndLinksOnExpandClick(childNodes, parentCoords) {
+  var child_nodes = []
+  var delta = 3;
+  for(var i = 0; i < childNodes.length; i++) {
+    var curr = data.nodes[childNodes[i]]
+    curr.x = parentCoords.x + i*delta
+    curr.y = parentCoords.y + i*delta
+    curr.px = parentCoords.x + i*delta
+    curr.py = parentCoords.y + i*delta
+   // curr.fixed = true;
+    child_nodes.push(curr)
+  }
+
   filt_nodes = data.nodes.filter(function(element) {
-          return(node_dict[element.name] == 1)});
-  filt_links = data.links.filter(function(element){
+      if(childNodes.indexOf(element.name) >= 0) return false;
+      return(node_dict[element.name] == 1)
+    })
+    .concat(child_nodes)
+
+  // child nodes are now appended at the end
+  console.log("here are the expandclick filt nodes:")
+  console.log(filt_nodes)
+  filterLinks();
+}
+
+function filterLinks() {
+    filt_links = data.links.filter(function(element){
           var sourceindex = 0
           var targetindex = 0
           if (typeof element.source=="number" || typeof element.source=="string") {sourceindex = element.source}
@@ -65,31 +87,50 @@ function FilterNodesAndLinks()
           return(element.value >= threshold && 
                   node_dict[sourceindex] == 1 &&
                   node_dict[targetindex] == 1)});
+}
+
+function FilterNodesAndLinks()
+{
+  filt_nodes = data.nodes.filter(function(element) {
+          return(node_dict[element.name] == 1)});
+  filterLinks();
+
   console.log("filt_nodes", filt_nodes.length, filt_nodes)
 }
 
-function RedrawGraph()
+// `parentCoords` is an optional parameter used on expand-click 
+// to position the expanded nodes at the original position
+// of the parent
+function RedrawGraph(parentCoords)  
 {
   	force
       .nodes(filt_nodes)
       .links(filt_links)
-      .start();
+       .start();
 
       var node = svg.selectAll("circle.node")
           .data(filt_nodes)
 
       node.enter().append("circle")
         .attr("class", "node")
-        .attr("cx", function(d) {console.log("parent", d.children[0].x); return d.parent.x})
-        .attr("cy", function(d) {return d.parent.y})
-        .attr("r", function(d) {console.log("size", d.size); return (d.size+ 3)/5 + 4})
+        .attr("cx", function(d) { 
+          if(parentCoords) {                      
+            console.log("node "+d.name+" will have x of "+parentCoords.x)
+            return parentCoords.x
+          }
+          return undefined
+        })
+        .attr("cy", function(d) {
+          if(parentCoords) return parentCoords.y
+          return undefined
+        })
+        .attr("r", function(d) { return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
         .style("fill", function(d) { return color(d.group) } )
-        .on("click", function(d) {
-        	click(d, force, svg, color, data)
-        })
+        .on("click", click)
         .call(force.drag);
 
+      node.select("title").remove();  // remove the old title
       node.append("title")
         .text(function(d) { return d.name; });
 
@@ -130,8 +171,6 @@ function RedrawGraph()
           node.attr("cx", function(d) { return d.x; })
             .attr("cy", function(d) { return d.y; });
       });
-
-
 }
 
 
@@ -174,10 +213,12 @@ function click(d)
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
     console.log("name rclick", d.name)
+    var coords = { x: d.x, y: d.y }
+    console.log("had coords "+JSON.stringify(coords))
     node_dict[d.name] = 0 
     AddChildren(node_dict, data.nodes[d.name].children)
-    FilterNodesAndLinks()
-    RedrawGraph();
+    FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+    RedrawGraph(coords);
   }
 }
 
