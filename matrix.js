@@ -5,23 +5,23 @@ var width = 960,
 var threshold = 50; 
 var initCharge = -25
 
+var force, data, svg, color;
 
 $(function() {
-	initializeSliders();
 	console.log('inside matrix.js')
 
-	var color = d3.scale.category10();
+  color = d3.scale.category10();
 
-	var force = d3.layout.force()
+  force = d3.layout.force()
 	    .charge(initCharge)
 	    .linkDistance(30)
 	    .size([width, height]);
 
-	var svg = d3.select("#graphPlot").append("svg")
+  svg = d3.select("#graphPlot").append("svg")
 	    .attr("width", width)
 	    .attr("height", height);
 
-	var data  = 0
+  data  = 0
 	d3.json("nodelinks.json", function(error, graph) {
 	  data = graph
 	  node_dict = {}
@@ -39,18 +39,19 @@ $(function() {
 	      .nodes(data.nodes)
 	      .links(data.links)
 	      .start();
+	 	initializeSliders(data, force, svg, color);
 
-	  FilterNodesAndLinks(data)
+	  FilterNodesAndLinks()
 
 	  console.log(filt_nodes)
 	  $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
 
-	  RedrawGraph(force, svg, color)  
+	  RedrawGraph()  
 	});
 });
 
 
-function FilterNodesAndLinks(data)
+function FilterNodesAndLinks()
 {
   filt_nodes = data.nodes.filter(function(element) {
           return(node_dict[element.name] == 1)});
@@ -67,9 +68,9 @@ function FilterNodesAndLinks(data)
   console.log("filt_nodes", filt_nodes.length, filt_nodes)
 }
 
-function RedrawGraph(force, svg, color)
+function RedrawGraph()
 {
-  force
+  	force
       .nodes(filt_nodes)
       .links(filt_links)
       .start();
@@ -84,7 +85,9 @@ function RedrawGraph(force, svg, color)
         .attr("r", function(d) {console.log("size", d.size); return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
         .style("fill", function(d) { return color(d.group) } )
-        .on("click", click)
+        .on("click", function(d) {
+        	click(d, force, svg, color, data)
+        })
         .call(force.drag);
 
       node.append("title")
@@ -162,7 +165,7 @@ function click(d)
   if (d3.event.shiftKey) {
 
     console.log("parent", d.parent)
-    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name)
+    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name, data)
     node_dict[d.parent] = 1
 
     FilterNodesAndLinks()
@@ -180,7 +183,7 @@ function click(d)
 
 
 
-function initializeSliders() {
+function initializeSliders(data, force, svg, color) {
 	$( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
                       value: threshold,
                       change: function(event, ui) {
