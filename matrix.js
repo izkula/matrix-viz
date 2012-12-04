@@ -4,8 +4,15 @@ var width = 960,
 
 var threshold = 50; 
 var initCharge = -25
+var hierarchyLevel = 5
+var maxTimeChunks = 8
+var globalTimeIndex = 1
 
 var force, data, svg, color;
+//Treat 'data' as a global variable so that it
+// can be accessed everywhere. We may change this
+// to account for using multiple datasets (or time periods)
+// at the same time
 
 $(function() {
 	console.log('inside matrix.js')
@@ -22,33 +29,90 @@ $(function() {
 	    .attr("height", height);
 
   data  = 0
-	d3.json("nodelinks.json", function(error, graph) {
-	  data = graph
-	  node_dict = {}
-	  for(var i = 0; i < graph.nodes.length; i++)
-	  {
-	    if(graph.nodes[i].group == 0) {
-	      node_dict[graph.nodes[i].name] = 1;
-	    } else {
-	      node_dict[graph.nodes[i].name] = 0;
-	    }
-	  }
-	  console.log("node_dict", node_dict)
 
-	  force
-	      .nodes(data.nodes)
-	      .links(data.links)
-	      .start();
-	 	initializeSliders(data, force, svg, color);
-
-	  FilterNodesAndLinks()
-
-	  console.log(filt_nodes)
-	  $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
-
-	  RedrawGraph()  
-	});
+  LoadData()
+  initializeSliders(force, svg, color);
 });
+
+function LoadData() {
+  var timeIndex = globalTimeIndex
+  filename = timeIndex.toString() + "_nodelinks.json"
+  d3.json(filename, function(error, graph) {
+    console.log("New graph!")
+    data = graph
+    node_dict = {}
+    var maxHierarchyLevel = graph.nodes[graph.nodes.length-1].group
+    if (hierarchyLevel > maxHierarchyLevel) {
+      console.log("Exceeded maxHierarchyLevel")
+      hierarchyLevel = maxHierarchyLevel
+      $( "#LevelSlider" ).slider( "value", hierarchyLevel );
+
+    }
+    for(var i = 0; i < graph.nodes.length; i++)
+    {
+      if(graph.nodes[i].group == hierarchyLevel) {
+        console.log(graph.nodes[i].group)
+        node_dict[graph.nodes[i].name] = 1;
+      } else {
+        node_dict[graph.nodes[i].name] = 0;
+      }
+    }
+
+    force
+        .nodes(data.nodes)
+        .links(data.links)
+        .start();
+    // initializeSliders(data, force, svg, color); //Changed this so that the sliders
+    //now access the global data variable instead of just the data variable passed at initialization
+    // Because of this, can also initialize after the LoadData function
+    //  initializeSliders(force, svg, color);
+
+
+    FilterNodesAndLinks()
+
+    //console.log(filt_nodes)
+    $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
+
+    RedrawGraph()  
+    console.log('data.nodes.length', data.nodes.length)
+  });
+}
+
+function ReLoadData() {
+  var timeIndex = globalTimeIndex
+  filename = timeIndex.toString() + "_nodelinks.json"
+  d3.json(filename, function(error, graph) {
+    console.log("New graph!")
+    data = graph
+    node_dict = {}
+    var maxHierarchyLevel = graph.nodes[graph.nodes.length-1].group
+    if (hierarchyLevel > maxHierarchyLevel) {
+      console.log("Exceeded maxHierarchyLevel")
+      hierarchyLevel = maxHierarchyLevel
+      $( "#LevelSlider" ).slider( "value", hierarchyLevel );
+    }
+    for(var i = 0; i < graph.nodes.length; i++)
+    {
+      if(graph.nodes[i].group == hierarchyLevel) {
+        console.log(graph.nodes[i].group)
+        node_dict[graph.nodes[i].name] = 1;
+      } else {
+        node_dict[graph.nodes[i].name] = 0;
+      }
+    }
+    force
+        .nodes(data.nodes)
+        .links(data.links)
+        .start();
+
+    FilterNodesAndLinks()
+    $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
+
+    RedrawGraph()  
+  });
+}
+
+
 
 
 function FilterNodesAndLinksOnExpandClick(childNodes, parentCoords) {
@@ -238,8 +302,11 @@ function click(d)
 
 
 
-function initializeSliders(data, force, svg, color) {
-	$( "#CorrSlider" ).slider({max: 100, min: 40, animate: "slow", 
+//function initializeSliders(data, force, svg, color) {
+function initializeSliders(force, svg, color) {
+  console.log('data,')
+  console.log(data)
+	$( "#CorrSlider" ).slider({max: 100, min: 10, animate: "slow", 
                       value: threshold,
                       change: function(event, ui) {
                       threshold = ui.value;
@@ -278,13 +345,15 @@ function initializeSliders(data, force, svg, color) {
 	//                   });
 
 	$( "#LevelSlider" ).slider({min: 0, animate: "slow",
-	                            step: 1, value: 0, 
+	                            step: 1, value: hierarchyLevel, 
 	                            change: function(event, ui) {
 	                                level = ui.value;
+                                  hierarchyLevel = level
 	                                console.log("level", level)
+                                  console.log("hierarchyLevel", hierarchyLevel)
 	                                console.log("nodes.length", data.nodes.length)
 	                                for(var i=0; i < data.nodes.length; i++) {
-	                                  if (data.nodes[i]['group'] == level) {
+	                                  if (data.nodes[i]['group'] == hierarchyLevel) {
 	                                    node_dict[i] = 1
 	                                  } else {
 	                                      node_dict[i] = 0
@@ -295,5 +364,19 @@ function initializeSliders(data, force, svg, color) {
 	                                RedrawGraph() 
 	                           } 
 	                          });
+
+  $( "#TimeSlider" ).slider({min: 0, max: maxTimeChunks, animate: "fast",
+                              step: 1, value: globalTimeIndex, 
+                              change: function(event, ui) {
+                                  var index = ui.value;
+                                  if(index != globalTimeIndex) {
+                                    globalTimeIndex = index
+                                    console.log("timeslider: nodes.length", data.nodes.length)
+                                    LoadData()
+                                  }                                  
+                                  //FilterNodesAndLinks()
+                                  //RedrawGraph() 
+                             } 
+                            });
 
 }

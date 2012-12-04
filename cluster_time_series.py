@@ -405,7 +405,7 @@ def PlotClusters(AtClusters, level):
         plt.savefig("Time_" + str(i) + "_level_" + str(level) + ".png")
 
 
-def  ToNodeLinkJSON(clusterInfo, threshold):
+def  ToNodeLinkJSON(clusterInfo, threshold, id):
     clusters = clusterInfo['clusters']
     W = clusterInfo['W']
     levels = clusterInfo['levels']
@@ -427,8 +427,8 @@ def  ToNodeLinkJSON(clusterInfo, threshold):
 #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
                     links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(W[i][j]*100)})
 
-
-    fp = open('nodelinks.json', 'w')
+    filename = str(id) + '_nodelinks.json'
+    fp = open(filename, 'w')
     data = json.dumps(nodes)
     fp.write('{ "nodes":')
     fp.write(data)
@@ -464,8 +464,8 @@ if __name__ == "__main__":
         AtClusters.append(clusterInfo)
     #PlotClusters(AtClusters, 2)
 
-
-    ToNodeLinkJSON(AtClusters[0], 0.4)
+    for i in range(len(AtClusters)):
+        ToNodeLinkJSON(AtClusters[i], 0.1, i)
 
    # ClusterByCorrelation(At[1])
    # ClusterByCorrelation(At[2])
