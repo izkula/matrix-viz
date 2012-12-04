@@ -148,6 +148,7 @@ function RedrawGraph(parentCoords)
 
       node.transition()
         .attr("class", "node")
+        .duration(0)
         .attr("r", function(d) {return (d.size + 3)/5 + 4})
         .style("fill", function(d) { return color(d.group); });
 
