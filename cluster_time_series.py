@@ -222,6 +222,49 @@ def GetSize(AllClusters, members):
         size += AllClusters[str(members[i])]['size']
     return size
 
+def RecursivelyListMembers(AllClusters, i):
+    members = AllClusters[str(i)]['members']
+    if members[0] == i:
+        return i
+    list = [i]
+    if isinstance(members, int):
+        output = RecursivelyListMembers(AllClusters, members)
+        if isinstance(output, int):
+            list = list + [output]
+        else:
+            list = list + output
+    else:
+        for j in range(len(members)):
+            output = RecursivelyListMembers(AllClusters, members[j])
+            if isinstance(output, int):
+                list = list + [output]
+            else:
+                list = list + output
+    return list
+
+def ScoreClusters(AllClusters) :
+    for i in range(len(AllClusters)):
+        members = AllClusters[str(i)]['members']
+        Aordered = []
+        members = RecursivelyListMembers(AllClusters, i)
+        print "members", members
+        if isinstance(members, int):
+            if(members == i):
+                AllClusters[str(i)]['metric'] = 1
+            else:
+                AllClusters[str(i)]['metric'] = AllClusters[str(members)]['metric']
+        else:
+            for j in range(len(members)):
+                ts = AllClusters[str(members[j])]['timeSeries']
+                Aordered.append(ts)
+
+            Aordered = np.array(Aordered)
+            Aordered = Aordered.T
+            W = np.corrcoef(Aordered.T)
+            meanCorr = np.mean(np.mean(W))
+            print "meanCorr", meanCorr
+            AllClusters[str(i)]['metric'] = meanCorr
+
 #Make a relationship matrix by clustering
 #input: matrix with time series as the columns (A[:, i])
 def ClusterByCorrelation(A):
@@ -232,7 +275,7 @@ def ClusterByCorrelation(A):
     AllClusters = {} #Each entry is a Cluster dict
     
     for i in range(len(A[0, :])):
-        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': 1, 'size': 1, 'level':0, 'parent':-1}
+        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': -1, 'size': 1, 'level':0, 'parent':-1}
 
     W = np.corrcoef(A.T) #relationship weight matrix
     lastClusterID = len(A[0, :])
@@ -310,6 +353,7 @@ def ClusterByCorrelation(A):
                     AllClusters[str(children[j])]['parent'] = i
         #print AllClusters
 
+    ScoreClusters(AllClusters)
     return [AllClusters, clustersPerLevel]
 
         # #For plotting a cluster
@@ -357,6 +401,8 @@ def ClusterByCorrelation(A):
 #OUTPUT FORMAT TO JS
 
 #Still need to think of a stationary graphic.
+
+
 
 def PlotClusteredMatrix(clusters, filename, start=0, end=-1):
     if end == -1:
@@ -416,14 +462,14 @@ def  ToNodeLinkJSON(clusterInfo, threshold, id):
     counter = 0
     for i in range(len(W)):
         if clusters[str(i)]['level'] > -1: #Change this value (and two values below) to control how many levels of clustering get passed 
-            nodes.append({'name': i, 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
+            nodes.append({'name': i, 'metric': clusters[str(i)]['metric'], 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
                 'parent':clusters[str(i)]['parent'], 'size':clusters[str(i)]['size'], 'timeseries':clusters[str(i)]['timeSeries'].tolist()})
             indexToName[str(i)] = counter
             counter += 1
     for i in range(len(W)):
         if clusters[str(i)]['level'] > -1:
             for j in range(i):
-                if W[i][j] > threshold and clusters[str(j)]['level'] > -1:
+                if W[i][j] >= threshold and clusters[str(j)]['level'] > -1:
 #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
                     links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(W[i][j]*100)})
 
@@ -465,7 +511,7 @@ if __name__ == "__main__":
     #PlotClusters(AtClusters, 2)
 
     for i in range(len(AtClusters)):
-        ToNodeLinkJSON(AtClusters[i], 0.1, i)
+        ToNodeLinkJSON(AtClusters[i], -1, i)
 
    # ClusterByCorrelation(At[1])
    # ClusterByCorrelation(At[2])
