@@ -13,6 +13,7 @@ var force, data, svg, color;
 // can be accessed everywhere. We may change this
 // to account for using multiple datasets (or time periods)
 // at the same time
+var timeSeriesNodes = {}
 
 $(function() {
 	console.log('inside matrix.js')
@@ -177,7 +178,7 @@ function FilterNodesAndLinks()
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph(parentCoords)  
+function RedrawGraph()  
 {
   	force
       .nodes(filt_nodes)
@@ -189,17 +190,6 @@ function RedrawGraph(parentCoords)
 
       node.enter().append("circle")
         .attr("class", "node")
-        // .attr("cx", function(d) { 
-        //   if(parentCoords) {                      
-        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
-        //     return parentCoords.x
-        //   }
-        //   return undefined
-        // })
-        // .attr("cy", function(d) {
-        //   if(parentCoords) return parentCoords.y
-        //   return undefined
-        // })
         .attr("r", function(d) { return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
         .style("fill", function(d) { return color(d.group) } )
@@ -277,6 +267,7 @@ function AddChildren(node_dict, children)
 
 }
 
+
 function click(d)
 {
   if (d3.event.shiftKey) {
@@ -288,6 +279,14 @@ function click(d)
     FilterNodesAndLinks()
     console.log(node_dict)
     RedrawGraph();
+  } else if (d3.event.altKey) {
+    if(d.name in timeSeriesNodes) {
+      delete timeSeriesNodes[d.name]
+    } else {
+      timeSeriesNodes[d.name] = true;
+    }
+    DrawLineGraph(timeSeriesNodes)
+
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
     console.log("name rclick", d.name)
@@ -301,6 +300,14 @@ function click(d)
   }
 }
 
+// var h_ts = 300
+// var w_ts = 400
+// var svg_ts
+// function DrawLineGraph(tsNodes) {
+//   if(!svg_ts) {
+//     svg_ts
+//   }
+// }
 
 
 //function initializeSliders(data, force, svg, color) {
@@ -373,11 +380,20 @@ function initializeSliders(force, svg, color) {
                                   if(index != globalTimeIndex) {
                                     globalTimeIndex = index
                                     console.log("timeslider: nodes.length", data.nodes.length)
-                                    LoadData()
+                                    var nodePositions = saveNodePositions();
+                                    LoadData(nodePositions)
                                   }                                  
                                   //FilterNodesAndLinks()
                                   //RedrawGraph() 
                              } 
                             });
+}
 
+function saveNodePositions() {
+  var nodePosMap = {}
+  for(var i=0; i < filt_nodes.length; i++) {
+    var curr = filt_nodes[i]
+    nodePosMap[curr.name]= { x: curr.x, y: curr.y }
+  }
+  return nodePosMap
 }
