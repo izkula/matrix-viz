@@ -460,7 +460,7 @@ def PlotClusters(AtClusters, level):
         plt.savefig("Time_" + str(i) + "_level_" + str(level) + ".png")
 
 
-def  ToNodeLinkJSON(clusterInfo, threshold, id):
+def  ToNodeLinkJSON(clusterInfo, threshold, time_index, delay):
     clusters = clusterInfo['clusters']
     W = clusterInfo['W']
     levels = clusterInfo['levels']
@@ -471,7 +471,7 @@ def  ToNodeLinkJSON(clusterInfo, threshold, id):
     counter = 0
     for i in range(len(W)):
         if clusters[str(i)]['level'] > -1: #Change this value (and two values below) to control how many levels of clustering get passed 
-            nodes.append({'name': i, 'globalID': clusters[str(i)]['globalID'], 'metric': clusters[str(i)]['metric'], 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
+            nodes.append({'name': i, 'time': time_index*delay, 'globalID': clusters[str(i)]['globalID'], 'metric': clusters[str(i)]['metric'], 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
                 'parent':clusters[str(i)]['parent'], 'size':clusters[str(i)]['size'], 'timeseries':clusters[str(i)]['timeSeries'].tolist()})
             indexToName[str(i)] = counter
             counter += 1
@@ -480,9 +480,10 @@ def  ToNodeLinkJSON(clusterInfo, threshold, id):
             for j in range(i):
                 if W[i][j] >= threshold and clusters[str(j)]['level'] > -1:
 #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
-                    links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(W[i][j]*100)})
+                    links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(abs(W[i][j])*100)})
+        #NOT SURE IF YOU ARE SUPPOSED TO TAKE THE ABSOLUTE VALUE
 
-    filename = str(id) + '_nodelinks.json'
+    filename = str(time_index) + '_nodelinks.json'
     fp = open(filename, 'w')
     data = json.dumps(nodes)
     fp.write('{ "nodes":')
@@ -557,7 +558,7 @@ if __name__ == "__main__":
     LabelClusters(AtClusters)
 
     for i in range(len(AtClusters)):
-        ToNodeLinkJSON(AtClusters[i], -1, i)
+        ToNodeLinkJSON(AtClusters[i], -1, i, delay)
 
    # ClusterByCorrelation(At[1])
    # ClusterByCorrelation(At[2])
