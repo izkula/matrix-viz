@@ -4,10 +4,10 @@ var width = 960,
 
 var threshold = 50; 
 var initCharge = -25
-var hierarchyLevel = 5
+var hierarchyLevel = 4
 var maxTimeChunks = 8
 var globalTimeIndex = 1
-
+var globalClusterMetric = 0.8
 var force, data, svg, color;
 //Treat 'data' as a global variable so that it
 // can be accessed everywhere. We may change this
@@ -21,7 +21,7 @@ $(function() {
   color = d3.scale.category10();
 
   force = d3.layout.force()
-	    .charge(initCharge)
+	    //.charge(function(d) {return d.group*initCharge;)
 	    .linkDistance(30)
 	    .size([width, height]);
 
@@ -33,6 +33,7 @@ $(function() {
 
   LoadData()
   initializeSliders(force, svg, color);
+  $("UndoButton").button("enable");
 });
 
 function LoadData() {
@@ -42,6 +43,7 @@ function LoadData() {
     console.log("New graph!")
     data = graph
     node_dict = {}
+    prev_node_dict = {}
     var maxHierarchyLevel = graph.nodes[graph.nodes.length-1].group
     if (hierarchyLevel > maxHierarchyLevel) {
       console.log("Exceeded maxHierarchyLevel")
@@ -51,7 +53,13 @@ function LoadData() {
     }
     for(var i = 0; i < graph.nodes.length; i++)
     {
-      if(graph.nodes[i].group == hierarchyLevel) {
+      if(graph.nodes[i].group == hierarchyLevel || 
+        graph.nodes[i].group == hierarchyLevel + 2 ||
+        graph.nodes[i].group == hierarchyLevel + 4 ||
+        graph.nodes[i].group == hierarchyLevel + 6 ||
+        graph.nodes[i].group == hierarchyLevel + 8 ||
+        graph.nodes[i].group == hierarchyLevel + 10 ||
+        i == graph.nodes.length - 1) {
         console.log(graph.nodes[i].group)
         node_dict[graph.nodes[i].name] = 1;
       } else {
@@ -59,9 +67,12 @@ function LoadData() {
       }
     }
 
+    prev_node_dict = CopyDict(node_dict)
+
     force
         .nodes(data.nodes)
         .links(data.links)
+        .charge(function(d) {return (d.group + 1)*initCharge})
         .start();
     // initializeSliders(data, force, svg, color); //Changed this so that the sliders
     //now access the global data variable instead of just the data variable passed at initialization
@@ -94,13 +105,20 @@ function ReLoadData() {
     }
     for(var i = 0; i < graph.nodes.length; i++)
     {
-      if(graph.nodes[i].group == hierarchyLevel) {
-        console.log(graph.nodes[i].group)
+      if(graph.nodes[i].group == hierarchyLevel || 
+        graph.nodes[i].group == hierarchyLevel + 2 ||
+        graph.nodes[i].group == hierarchyLevel + 4 ||
+         graph.nodes[i].group == hierarchyLevel + 6 ||
+          graph.nodes[i].group == hierarchyLevel + 8 ||
+          graph.nodes[i].group == hierarchyLevel + 10 ||
+          i == graph.nodes.length - 1) {
+        console.log("group", graph.nodes[i].group)
         node_dict[graph.nodes[i].name] = 1;
       } else {
         node_dict[graph.nodes[i].name] = 0;
       }
     }
+    prev_node_dict = {}
     force
         .nodes(data.nodes)
         .links(data.links)
@@ -112,6 +130,7 @@ function ReLoadData() {
     RedrawGraph()  
   });
 }
+
 
 
 
@@ -153,6 +172,18 @@ function FilterNodesAndLinksOnExpandClick(childNodes, parentCoords) {
   filterLinks();
 }
 
+function Bound(index) {
+  return Math.min(data.nodes.length -2, index)
+}
+
+function ValidLink(sourceindex, targetindex)
+{    return (//element.value >= threshold && 
+              node_dict[sourceindex] == 1 &&
+              node_dict[targetindex] == 1
+              && (data.nodes[Bound(data.nodes[Bound(sourceindex)]['parent'])]['parent'] == targetindex
+              || data.nodes[Bound(data.nodes[Bound(targetindex)]['parent'])]['parent'] == sourceindex))
+}
+
 function filterLinks() {
     filt_links = data.links.filter(function(element){
           var sourceindex = 0
@@ -161,10 +192,10 @@ function filterLinks() {
           else {sourceindex = element.source.name}
           if (typeof element.target=="number" || typeof element.source=="string") {targetindex = element.target}
           else {targetindex = element.target.name}
-          return(element.value >= threshold && 
-                  node_dict[sourceindex] == 1 &&
-                  node_dict[targetindex] == 1)});
-}
+          
+          return ValidLink(sourceindex, targetindex)})
+  }
+
 
 function FilterNodesAndLinks()
 {
@@ -172,7 +203,17 @@ function FilterNodesAndLinks()
           return(node_dict[element.name] == 1)});
   filterLinks();
 
-  console.log("filt_nodes", filt_nodes.length, filt_nodes)
+  
+}
+
+function ChildrenDisplayed(d) 
+{
+  for (var i=0; i<d.children.length; i++) {
+    if(node_dict[data.nodes[d.children[i]].children[0]] == 1) {
+      return true
+    }
+  }
+  return false
 }
 
 // `parentCoords` is an optional parameter used on expand-click 
@@ -190,9 +231,27 @@ function RedrawGraph()
 
       node.enter().append("circle")
         .attr("class", "node")
+<<<<<<< HEAD
         .attr("r", function(d) { return (d.size+ 3)/5 + 4})
+=======
+        // .attr("cx", function(d) { 
+        //   if(parentCoords) {                      
+        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
+        //     return parentCoords.x
+        //   }
+        //   return undefined
+        // })
+        // .attr("cy", function(d) {
+        //   if(parentCoords) return parentCoords.y
+        //   return undefined
+        // })
+        .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
+>>>>>>> 7b87668eb9ee697cfe62f5ee7183f2ad456eb999
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
-        .style("fill", function(d) { return color(d.group) } )
+        .style("fill", function(d) { console.log(node_dict); if(d.name == data.nodes.length - 1) {return "blue"} else if (d.children[0] == d.name 
+                                                            || !ChildrenDisplayed(d)) {return "orange" } 
+                                      else { return "lightblue" }})
+                                        //color(d.group) } )
         .on("click", click)
         .call(force.drag);
 
@@ -202,9 +261,17 @@ function RedrawGraph()
 
       node.transition()
         .attr("class", "node")
+<<<<<<< HEAD
         .duration(0)
         .attr("r", function(d) {return (d.size + 3)/5 + 4})
         .style("fill", function(d) { return color(d.group); });
+=======
+        .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
+        .style("fill", function(d) {if(d.name == data.nodes.length - 1) {return "blue"} else if (d.children[0] == d.name || 
+                                    !ChildrenDisplayed(d)) {return "orange" } 
+                                     else { return "lightblue" }})
+          //return color(d.group); });
+>>>>>>> 7b87668eb9ee697cfe62f5ee7183f2ad456eb999
 
       node.exit().transition()
         .remove()
@@ -214,7 +281,7 @@ function RedrawGraph()
 
       link.enter().insert("line", "circle.node")
           .attr("class", "link")
-          .style("stroke-width", function(d) { if (d.value < threshold) { return 0 } else { return Math.sqrt(d.value/100) }})
+          .style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value/100) }})
           .transition()
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
@@ -249,6 +316,17 @@ function max(a, b)
 
 }
 
+function CopyDict(from_dict)
+{
+  to_dict = {}
+  for(var i in from_dict) {
+    to_dict[i] = from_dict[i];
+  }
+  console.log("to", to_dict)
+  console.log("from", from_dict)
+  return to_dict
+}
+
 function RemoveChildren(node_dict, children, name)
 {
   if (children[0] == name) {return}
@@ -264,7 +342,6 @@ function AddChildren(node_dict, children)
   for (var i=0; i<children.length; i++) {
     node_dict[children[i]] = 1
   }
-
 }
 
 
@@ -272,12 +349,16 @@ function click(d)
 {
   if (d3.event.shiftKey) {
 
+    prev_node_dict = CopyDict(node_dict)
+    console.log("prev_node_dict", prev_node_dict)
     console.log("parent", d.parent)
-    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name, data)
-    node_dict[d.parent] = 1
+//    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name, data)
+//    node_dict[d.parent] = 1
+    RemoveChildren(node_dict, d.children, d.name, data)
+    node_dict[d.name] = 1
 
     FilterNodesAndLinks()
-    console.log(node_dict)
+    console.log("node_dict", node_dict)
     RedrawGraph();
   } else if (d3.event.altKey) {
     if(d.name in timeSeriesNodes) {
@@ -289,13 +370,21 @@ function click(d)
 
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
+    prev_node_dict = CopyDict(node_dict)
     console.log("name rclick", d.name)
     var parentIndex = filt_nodes.indexOf(data.nodes[d.name])
     var coords = { x: d.x, y: d.y, name: d.name, index: parentIndex }
     console.log("had coords "+JSON.stringify(coords))
-    node_dict[d.name] = 0 
-    AddChildren(node_dict, data.nodes[d.name].children)
-    FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+    node_dict[d.name] = 1 
+//    AddChildren(node_dict, data.nodes[d.name].children)
+//    FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+
+    for(var i=0; i<d.children.length; i++) {
+      AddChildren(node_dict, data.nodes[d.children[i]].children)
+     // FilterNodesAndLinksOnExpandClick(data.nodes[d.children[i]].children, coords)
+     FilterNodesAndLinks()
+    }
+    
     RedrawGraph(coords);
   }
 }
@@ -314,7 +403,7 @@ function click(d)
 function initializeSliders(force, svg, color) {
   console.log('data,')
   console.log(data)
-	$( "#CorrSlider" ).slider({max: 100, min: 10, animate: "slow", 
+	$( "#CorrSlider" ).slider({max: 100, min: 0, animate: "slow", 
                       value: threshold,
                       change: function(event, ui) {
                       threshold = ui.value;
@@ -326,9 +415,7 @@ function initializeSliders(force, svg, color) {
                                       else {sourceindex = element.source.name}
                                       if (typeof element.target=="number") {targetindex = element.target}
                                       else {targetindex = element.target.name}
-                                      return(element.value >= threshold && 
-                                              node_dict[sourceindex] == 1 &&
-                                              node_dict[targetindex] == 1)})
+                                      return ValidLink(sourceindex, targetindex)})
                       console.log("filt_links", filt_links.length)  
                       RedrawGraph()
                     }
@@ -353,7 +440,7 @@ function initializeSliders(force, svg, color) {
 	//                   });
 
 	$( "#LevelSlider" ).slider({min: 0, animate: "slow",
-	                            step: 1, value: hierarchyLevel, 
+	                            step: 2, value: hierarchyLevel, 
 	                            change: function(event, ui) {
 	                                level = ui.value;
                                   hierarchyLevel = level
@@ -361,8 +448,15 @@ function initializeSliders(force, svg, color) {
                                   console.log("hierarchyLevel", hierarchyLevel)
 	                                console.log("nodes.length", data.nodes.length)
 	                                for(var i=0; i < data.nodes.length; i++) {
-	                                  if (data.nodes[i]['group'] == hierarchyLevel) {
-	                                    node_dict[i] = 1
+	                                  if (data.nodes[i]['group'] == hierarchyLevel || 
+                                        data.nodes[i]['group'] == hierarchyLevel + 2 ||
+                                        data.nodes[i]['group'] == hierarchyLevel + 4 ||
+                                        data.nodes[i]['group'] == hierarchyLevel + 6 ||
+                                        data.nodes[i]['group'] == hierarchyLevel + 8 ||
+                                         data.nodes[i]['group'] == hierarchyLevel + 10 ||
+                                         i == data.nodes.length - 1) {
+	                                       
+                                         node_dict[i] = 1
 	                                  } else {
 	                                      node_dict[i] = 0
 	                                  }
@@ -397,3 +491,35 @@ function saveNodePositions() {
   }
   return nodePosMap
 }
+
+$( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast",
+                          step: 0.01, value: globalClusterMetric, 
+                          change: function(event, ui) {
+                              prev_node_dict = CopyDict(node_dict)
+                              globalClusterMetric = ui.value;
+                              console.log('globalClusterMetric', globalClusterMetric)
+                              for(var i=0; i < data.nodes.length; i++) {
+                                    console.log(i, data.nodes[i].metric)
+                                    if (data.nodes[i].metric >  globalClusterMetric ) {
+                                          node_dict[i] = 0
+                                    } else {
+                                      if (data.nodes[i].group % 2 == 0 || data.nodes[i].group == data.nodes.length - 1) {
+                                          node_dict[i] = 1
+                                        } else {
+                                          node_dict[i] = 0
+                                        }
+                                    }
+                                  }                                
+                              FilterNodesAndLinks()
+                              RedrawGraph() 
+                         } 
+                        });
+
+$( "#UndoButton" ).button({ label: "Undo" });
+
+$("#UndoButton").click(function() {
+    node_dict = CopyDict(prev_node_dict)
+    FilterNodesAndLinks()
+    RedrawGraph()
+})
+
