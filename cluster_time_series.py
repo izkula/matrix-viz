@@ -3,6 +3,7 @@ import sys
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as dst
 import scipy.cluster.hierarchy as hrc
+import scipy.stats as ss
 import pylab
 import json
 
@@ -41,8 +42,19 @@ def WindowedMatrices(data, nwin, overlap):
         end = start + nWindowPoints
         A = np.asarray(data[start:min(end, nAllPoints), :])
         At.append(A)
+    return [At, nwin]
 
-    return At
+def OverlappingWindows(data, delay, nPointsPerWindow):
+    nAllPoints = data.shape[0]
+    nWindows = (nAllPoints - nPointsPerWindow)/delay
+    At = []
+    for i in range(nWindows):
+        start = i*delay
+        end = start + nPointsPerWindow
+        A = np.asarray(data[start:min(end, nAllPoints), :])
+        At.append(A)
+    return [At, nWindows]
+
 
 
 def SortAndClusterBySVD(Ut, St, Vt):
@@ -57,8 +69,8 @@ def SortAndClusterBySVD(Ut, St, Vt):
         cs_indices = np.argsort(c, axis=0)
         cs = np.sort(c, axis=0)
         end = np.shape(cs)[0] -1
-        print np.sort(cs_indices[end, :])
-        print np.sort(cs[end, :])
+      #  print np.sort(cs_indices[end, :])
+      #  print np.sort(cs[end, :])
 
 def HierarchicalCluster(A):
     #see http://stackoverflow.com/questions/2982929/plotting-results-of-hierarchical-clustering-ontop-of-a-matrix-of-data-in-python
@@ -91,7 +103,7 @@ def HierarchicalCluster(A):
     #print Z1['leaves']
 
 def CorrelationMatrix(A, t):
-    print A
+   # print A
     Corr = np.corrcoef(A.T)
     for i in range(np.shape(Corr)[0]):
         Corr[i, i] = 0
@@ -131,13 +143,10 @@ def Clean(A):
     Anew = []
     for i in range(np.shape(A)[1]):
         if np.abs(np.cov(A[:,i]))> 0.000001:
-            print np.shape([A[:, i]])
+           # print np.shape([A[:, i]])
             Anew.append(A[:, i])
     Anew = np.array(Anew)
     Anew = Anew.T
-    print Anew
-    print "Anew",np.shape(Anew)
-
     return Anew
 
 
@@ -194,7 +203,7 @@ def StackTimeSeries(AllClusters, lastClusterID, clusterCount):
 
     A = np.array(A)
     A = A.T # so that it matches the initial data
-    print np.shape(A)
+   # print np.shape(A)
     return A
 
 # Returns a weight matrix holding the relationship between all clusters
@@ -210,7 +219,7 @@ def GetClusterParents(AllClusters):
         if (i == range(len(AllClusters) - 1)):
             AllClusters[str(i)]['parent'] = i
         children = cluster['members']
-        print "children", children
+      #  print "children", children
         for j in range(len(children)):
             if i != j:
                 AllClusters[str(children[j])]['parent'] = i
@@ -247,7 +256,7 @@ def ScoreClusters(AllClusters) :
         members = AllClusters[str(i)]['members']
         Aordered = []
         members = RecursivelyListMembers(AllClusters, i)
-        print "members", members
+      #  print "members", members
         if isinstance(members, int):
             if(members == i):
                 AllClusters[str(i)]['metric'] = 1
@@ -262,7 +271,7 @@ def ScoreClusters(AllClusters) :
             Aordered = Aordered.T
             W = np.corrcoef(Aordered.T)
             meanCorr = np.mean(np.mean(W))
-            print "meanCorr", meanCorr
+          #  print "meanCorr", meanCorr
             AllClusters[str(i)]['metric'] = meanCorr
 
 #Make a relationship matrix by clustering
@@ -275,7 +284,7 @@ def ClusterByCorrelation(A):
     AllClusters = {} #Each entry is a Cluster dict
     
     for i in range(len(A[0, :])):
-        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': -1, 'size': 1, 'level':0, 'parent':-1}
+        AllClusters[str(i)] = {'members':[i], 'timeSeries': A[:, i], 'metric': -1, 'size': 1, 'level':0, 'parent':-1, 'globalID': i}
 
     W = np.corrcoef(A.T) #relationship weight matrix
     lastClusterID = len(A[0, :])
@@ -316,7 +325,7 @@ def ClusterByCorrelation(A):
             
             #use mean time series to combine the time series within a cluster
             members = AllClusters[str(j)]['members']
-            print members
+         #   print members
             sum = AllClusters[str(members[0])]['timeSeries']
             for k in range(1, len(members)):
                 sum += AllClusters[str(members[k])]['timeSeries']
@@ -334,19 +343,19 @@ def ClusterByCorrelation(A):
         W = np.corrcoef(A.T)
         #if (np.shape(W) != ()):
             #plt.matshow(W)
-        print np.shape(W)
+      #  print np.shape(W)
         lastClusterID += clusterCount
-        print "clustersPerLevel", clustersPerLevel
+      #  print "clustersPerLevel", clustersPerLevel
 
         #GetClusterParents(AllClusters)
         ## Get Cluster Parents
     for i in range(len(AllClusters)-1, -1, -1):
-        print i
+     #   print i
         cluster = AllClusters[str(i)]
         if (i == range(len(AllClusters) - 1)):
             AllClusters[str(i)]['parent'] = i
         children = cluster['members']
-        print "children", children
+     #   print "children", children
         for j in range(len(children)):
             if i != j: # or AllClusters[str(children[j])]['parent'] == -1:
                 if AllClusters[str(children[j])]['parent'] == -1:
@@ -435,17 +444,17 @@ def PlotClusters(AtClusters, level):
         clusters = AtClusters[i]['clusters']
         levels = AtClusters[i]['levels']
         W = AtClusters[i]['W']
-        print "W", np.shape(W)
+    #    print "W", np.shape(W)
 
-        print "levels", levels
+     #   print "levels", levels
         if level > 0:
             minIndex = np.sum(levels[0:level])
         else:
             minIndex = 0
         maxIndex = minIndex + levels[level]
 
-        print "minIndex", minIndex
-        print "maxIndex", maxIndex
+     #   print "minIndex", minIndex
+     #   print "maxIndex", maxIndex
         w = W[minIndex:maxIndex, minIndex:maxIndex]
         fig = plt.matshow(w)
         plt.savefig("Time_" + str(i) + "_level_" + str(level) + ".png")
@@ -462,7 +471,7 @@ def  ToNodeLinkJSON(clusterInfo, threshold, id):
     counter = 0
     for i in range(len(W)):
         if clusters[str(i)]['level'] > -1: #Change this value (and two values below) to control how many levels of clustering get passed 
-            nodes.append({'name': i, 'metric': clusters[str(i)]['metric'], 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
+            nodes.append({'name': i, 'globalID': clusters[str(i)]['globalID'], 'metric': clusters[str(i)]['metric'], 'group':clusters[str(i)]['level'], 'children':clusters[str(i)]['members'], 
                 'parent':clusters[str(i)]['parent'], 'size':clusters[str(i)]['size'], 'timeseries':clusters[str(i)]['timeSeries'].tolist()})
             indexToName[str(i)] = counter
             counter += 1
@@ -484,15 +493,47 @@ def  ToNodeLinkJSON(clusterInfo, threshold, id):
     fp.write('}')
     fp.close()
 
+#input a single current cluster,  a dictionary of all of the clusters
+# from the previous time step, and the index of the current cluster
+def FindClosestCluster(currclust, prevclusts, k, prevClustID):
+        max_corr = 0
+        max_id = -1
+        x = currclust['timeSeries']
+        for j in range(len(prevclusts)):
+            if currclust['level'] == prevclusts[str(j)]['level']:
+                y = prevclusts[str(j)]['timeSeries']
+                corr = ss.pearsonr(x, y)
+                if corr > max_corr:
+                    max_corr = corr
+                    max_id = prevclusts[str(j)]['globalID']
+        if(max_id != -1):
+            currclust['globalID'] = max_id
+        else:
+            currclust['globalID'] = prevClustID + 1
 
+def LabelClusters(AtClusters):
 
+    numBaseClusters = AtClusters[0]['levels'][0]
+    print "numBaseClusters", numBaseClusters
+    for i in range(len(AtClusters)):
+        print "label clusters i: ", i
+        clusters = AtClusters[i]['clusters']
+        for k in range(numBaseClusters, len(clusters)):
+            print "k: ", k
+            if i == 0:
+                clusters[str(k)]['globalID'] = k
+            else:
+                FindClosestCluster(clusters[str(k)], AtClusters[i-1]['clusters'], k, clusters[str(k-1)]['globalID'])
 
 
 if __name__ == "__main__":
     data = LoadData()
     data = Clean(data)
-    numWin = 9
-    At = WindowedMatrices(data, numWin, True);
+    #numWin = 3
+  #  At = WindowedMatrices(data, numWin, True);
+    delay = 10
+    numPointsPerWindow = 50
+    [At, numWin] = OverlappingWindows(data, delay, numPointsPerWindow)
 
     AtClusters = []
     Wt = []
@@ -508,7 +549,12 @@ if __name__ == "__main__":
         print "start", start, "end", end
         PlotClusteredMatrix(clusterInfo['clusters'], filename, start, end)
         AtClusters.append(clusterInfo)
+    for i in range(numWin):
+        print "i: ", i, "clustersPerLevel: ", AtClusters[i]['levels']
+
     #PlotClusters(AtClusters, 2)
+
+    LabelClusters(AtClusters)
 
     for i in range(len(AtClusters)):
         ToNodeLinkJSON(AtClusters[i], -1, i)
