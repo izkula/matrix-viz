@@ -231,22 +231,7 @@ function RedrawGraph()
 
       node.enter().append("circle")
         .attr("class", "node")
-<<<<<<< HEAD
-        .attr("r", function(d) { return (d.size+ 3)/5 + 4})
-=======
-        // .attr("cx", function(d) { 
-        //   if(parentCoords) {                      
-        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
-        //     return parentCoords.x
-        //   }
-        //   return undefined
-        // })
-        // .attr("cy", function(d) {
-        //   if(parentCoords) return parentCoords.y
-        //   return undefined
-        // })
         .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
->>>>>>> 7b87668eb9ee697cfe62f5ee7183f2ad456eb999
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
         .style("fill", function(d) { console.log(node_dict); if(d.name == data.nodes.length - 1) {return "blue"} else if (d.children[0] == d.name 
                                                             || !ChildrenDisplayed(d)) {return "orange" } 
@@ -261,17 +246,12 @@ function RedrawGraph()
 
       node.transition()
         .attr("class", "node")
-<<<<<<< HEAD
         .duration(0)
-        .attr("r", function(d) {return (d.size + 3)/5 + 4})
-        .style("fill", function(d) { return color(d.group); });
-=======
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
         .style("fill", function(d) {if(d.name == data.nodes.length - 1) {return "blue"} else if (d.children[0] == d.name || 
                                     !ChildrenDisplayed(d)) {return "orange" } 
                                      else { return "lightblue" }})
           //return color(d.group); });
->>>>>>> 7b87668eb9ee697cfe62f5ee7183f2ad456eb999
 
       node.exit().transition()
         .remove()
@@ -481,17 +461,6 @@ function initializeSliders(force, svg, color) {
                                   //RedrawGraph() 
                              } 
                             });
-}
-
-function saveNodePositions() {
-  var nodePosMap = {}
-  for(var i=0; i < filt_nodes.length; i++) {
-    var curr = filt_nodes[i]
-    nodePosMap[curr.name]= { x: curr.x, y: curr.y }
-  }
-  return nodePosMap
-}
-
 $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast",
                           step: 0.01, value: globalClusterMetric, 
                           change: function(event, ui) {
@@ -522,4 +491,16 @@ $("#UndoButton").click(function() {
     FilterNodesAndLinks()
     RedrawGraph()
 })
+}
+
+
+
+function saveNodePositions() {
+  var nodePosMap = {}
+  for(var i=0; i < filt_nodes.length; i++) {
+    var curr = filt_nodes[i]
+    nodePosMap[curr.name]= { x: curr.x, y: curr.y }
+  }
+  return nodePosMap
+}
 
