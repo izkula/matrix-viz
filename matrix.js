@@ -20,9 +20,8 @@ var filt_links, filt_nodes;
 
 $(function() {
 	console.log('inside matrix.js')
-
   color = d3.scale.category10();
-
+  
   force = d3.layout.force()
 	    //.charge(function(d) {return d.group*initCharge;)
 	    .linkDistance(30)
@@ -47,13 +46,13 @@ function CheckNode(group, hierarchyLevel, i, length) {
            group == hierarchyLevel + 6 ||
            group == hierarchyLevel + 8 ||
            group == hierarchyLevel + 10 ||
+           group == hierarchyLevel + 12 ||
            i == length - 1)
 }
 
 function CheckMaxHierarchyLevel(data, hierarchyLevel) {
     var maxHierarchyLevel = data.nodes[data.nodes.length-1].group
     if (hierarchyLevel > maxHierarchyLevel) {
-      console.log("Exceeded maxHierarchyLevel")
       hierarchyLevel = maxHierarchyLevel
       $( "#LevelSlider" ).slider( "value", hierarchyLevel );
     }
@@ -64,7 +63,6 @@ function FilterNodeDict(data, hierarchyLevel)
     for(var i = 0; i < data.nodes.length; i++)
     {
       if(CheckNode(data.nodes[i].group, hierarchyLevel, i, data.nodes.length)) {
-        console.log(data.nodes[i].group)
         node_dict[data.nodes[i].name] = 1;
       } else {
         node_dict[data.nodes[i].name] = 0;
@@ -102,103 +100,219 @@ function LoadData() {
   });
 }
 
-
-function TimeStepGraph(data, globalTimeIndex, prevIndex, nodeDict) {
-  console.log("TimeStep!")
-  prev_data = data
-  console.log("globalTimeIndex", globalTimeIndex)
-  filename = globalTimeIndex.toString() + "_nodelinks.json"
-  d3.json(filename, function(error, graph) {
-    console.log("New graph!")
-    data = graph
-    prev_node_dict = {}
-    prev_node_dict = CopyDict(node_dict)
-    node_dict = {}
-
-    CheckMaxHierarchyLevel(data, hierarchyLevel)
-    FilterNodeDict(data, hierarchyLevel, node_dict)
-
-    var new_nodes = []
-    var delta = 3;
-    console.log("data.nodes.length", data.nodes.length)
-
-    var new_globalID_dict = {}
-
-    for(var i = 0; i<data.nodes.length; i++) {
-      var d = data.nodes[i]
-      new_globalID_dict[d.globalID] = d
+function DictMax(currDict)
+{
+  var maxKey = 0
+  for(var key in currDict) {
+    if(currDict.hasOwnProperty(key)) {
+      if(key > maxKey) {
+        maxKey = parseInt(key)
+      }
     }
+  }
+  return maxKey
+}
 
-    for(var i = 0; i<data.nodes.length; i++) {
-      //if(node_dict[i] == 1) {
-        var curr = data.nodes[i]
-        var globalID = curr.globalID
-        console.log("curr", curr)
-        
-        if(typeof  globalID_dict[globalID] != "undefined") {
-          console.log("globalID_dict[globalID].name", globalID_dict[globalID].name)
-          console.log("prev_node_dict[globalID_dict[globalID].name]", prev_node_dict[globalID_dict[globalID].name])
-          if(prev_node_dict[globalID_dict[globalID].name] == 1) {
-            node_dict[new_globalID_dict[globalID].name] = 1
-            curr.x = globalID_dict[globalID].x + i*delta
-            curr.y = globalID_dict[globalID].y + i*delta
-            curr.px = globalID_dict[globalID].x + i*delta
-            curr.py = globalID_dict[globalID].y + i*delta
-            console.log('globalID_dict[globalID]', globalID_dict[globalID])
+function PositionNewNodes(data, node_dict) {
+  var new_nodes = []
+  //    var delta = 3;
+  var delta = 0;
 
-            new_nodes.push(curr)
-          }
+  var max_globalID = DictMax(globalID_dict)
+  console.log('max_globalID', max_globalID)
+
+
+  for(var i = 0; i<data.nodes.length; i++) {
+      var curr = data.nodes[i]
+      var globalID = curr.globalID
+      console.log("curr", curr)
+      console.log('max_globalID', max_globalID)
+      console.log('globalID_dict', globalID_dict)
+
+    
+
+      if(typeof globalID_dict[globalID] != "undefined" || globalID >= max_globalID) {
+       
+        if(globalID >= max_globalID) {
+          node_dict[i] = 1
+          var lastD = globalID_dict[max_globalID - 1]
+          console.log('lastD', lastD)
+          curr.x = lastD.x + i*delta
+          curr.y = lastD.y + i*delta
+          curr.px = lastD.x + i*delta
+          curr.py = lastD.y + i*delta
+          new_nodes.push(curr)
+
+        } else if(prev_node_dict[globalID_dict[globalID].name] == 1 ) {
+          //console.log("globalID_dict[globalID].name", globalID_dict[globalID].name)
+          //console.log("prev_node_dict[globalID_dict[globalID].name]", prev_node_dict[globalID_dict[globalID].name])
+
+          node_dict[i] = 1
+          curr.x = globalID_dict[globalID].x + i*delta
+          curr.y = globalID_dict[globalID].y + i*delta
+          curr.px = globalID_dict[globalID].x + i*delta
+          curr.py = globalID_dict[globalID].y + i*delta
+          console.log('globalID_dict[globalID]', globalID_dict[globalID])
+          new_nodes.push(curr)
+
         } else {
-          globalID_dict[globalID] = curr
+          node_dict[i] = 0
           curr.x = 0
           curr.y = 0
           curr.px = 0
           curr.py = 0
-          console.log('globalID doesnt exist yet', globalID)
-          new_nodes.push(curr)
         }
-        //}
-    }
 
+      } else {
+        node_dict[i] = 0
+        curr.x = 0
+        curr.y = 0
+        curr.px = 0
+        curr.py = 0
+      }
+  }
+  return new_nodes
+}
+
+function UpdateGlobalID_dict(data) 
+{
+  console.log("TO DO TO DO TO DO TO DO UpdateGlobalID_dict")
+  for(var i = 0; i<data.nodes.length; i++) {
+    var globalID = data.nodes[i].globalID
+    globalID_dict['globalID'] = data.nodes[i]
+  }
+
+//  return new_globalID_dict
+}
+
+
+function TimeStepGraph(globalTimeIndex, prevIndex, nodeDict) {
+  prev_data = data
+  console.log("globalTimeIndex", globalTimeIndex)
+  filename = globalTimeIndex.toString() + "_nodelinks.json"
+
+  d3.json(filename, function(error, graph) {
+    console.log("New graph!")
+    data = graph
+    curr_data = data
+    console.log("graph", graph)
+
+    console.log("data", data)
+    console.log("curr_data", curr_data)
+    prev_node_dict = {}
+    prev_node_dict = CopyDict(node_dict)
+    node_dict = {}
+
+    CheckMaxHierarchyLevel(curr_data, hierarchyLevel)
+
+
+  //  FilterNodeDict(data, hierarchyLevel, node_dict)
+
+//    var new_globalID_dict = {}
+
+    console.log('data.nodes in timestep', data.nodes)
+
+    var new_nodes = PositionNewNodes(data, node_dict)
+    console.log('post PositionNewNodes node_dict', node_dict)
+    console.log('post PositionNewNodes new_nodes', new_nodes)
     filt_nodes = new_nodes
-    //node_dict = CopyDict(prev_node_dict)
-    console.log("node_dict", node_dict)
 
 
-    console.log("here are the expandclick filt nodes:")
-    console.log(filt_nodes)
+    //NEED TO UPDATE globalID_dict
+    UpdateGlobalID_dict(data)
+   
+    //THIS IS OLD (Thursday 11pm)
+    //    for(var i = 0; i<data.nodes.length; i++) {
+//      var d = data.nodes[i]
+//      console.log('new_globalID_dict[d.globalID]', new_globalID_dict[d.globalID])
+//      new_globalID_dict[d.globalID] = d
+//    }
+    
     filterLinks(data);
-
+    console.log("here are the timestep filt links:")
+    console.log(filt_links)
+    for (var i=0; i<filt_links.length; i++) {
+      filt_links[i].target = data.nodes[filt_links[i].target]
+      filt_links[i].source = data.nodes[filt_links[i].source]
+    }
 
     RedrawGraph(data)  
   });
 
 }
 
-// function ReLoadData() {
-//   var timeIndex = globalTimeIndex
-//   filename = timeIndex.toString() + "_nodelinks.json"
+
+// function TimeStepGraph(data, globalTimeIndex, prevIndex, nodeDict) {
+//   prev_data = data
+//   console.log("globalTimeIndex", globalTimeIndex)
+//   filename = globalTimeIndex.toString() + "_nodelinks.json"
+
 //   d3.json(filename, function(error, graph) {
 //     console.log("New graph!")
 //     data = graph
+//     prev_node_dict = {}
+//     prev_node_dict = CopyDict(node_dict)
 //     node_dict = {}
+
 //     CheckMaxHierarchyLevel(data, hierarchyLevel)
 //     FilterNodeDict(data, hierarchyLevel, node_dict)
-//     prev_node_dict = {}
-//     force
-//         .nodes(data.nodes)
-//         .links(data.links)
-//         .start();
 
-//     FilterNodesAndLinks()
-//     $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
+//     var new_nodes = []
+//     var delta = 3;
 
-//     RedrawGraph()  
+//     var new_globalID_dict = {}
+
+//     console.log('data.nodes in timestep', data.nodes)
+//     for(var i = 0; i<data.nodes.length; i++) {
+//       var d = data.nodes[i]
+//       console.log('new_globalID_dict[d.globalID]', new_globalID_dict[d.globalID])
+//       new_globalID_dict[d.globalID] = d
+//     }
+
+//     for(var i = 0; i<data.nodes.length; i++) {
+//         var curr = data.nodes[i]
+//         var globalID = curr.globalID
+//         console.log("curr", curr)
+        
+//         if(typeof  globalID_dict[globalID] != "undefined") {
+//           console.log("globalID_dict[globalID].name", globalID_dict[globalID].name)
+//           console.log("prev_node_dict[globalID_dict[globalID].name]", prev_node_dict[globalID_dict[globalID].name])
+//           if(prev_node_dict[globalID_dict[globalID].name] == 1) {
+//             node_dict[new_globalID_dict[globalID].name] = 1
+//             curr.x = globalID_dict[globalID].x + i*delta
+//             curr.y = globalID_dict[globalID].y + i*delta
+//             curr.px = globalID_dict[globalID].x + i*delta
+//             curr.py = globalID_dict[globalID].y + i*delta
+//             console.log('globalID_dict[globalID]', globalID_dict[globalID])
+
+//             new_nodes.push(curr)
+//           }
+//         } else {
+//           globalID_dict[globalID] = curr
+//           curr.x = 0
+//           curr.y = 0
+//           curr.px = 0
+//           curr.py = 0
+//           console.log('globalID doesnt exist yet', globalID)
+//           new_nodes.push(curr)
+//         }
+//     }
+
+//     filt_nodes = new_nodes
+//     console.log("node_dict", node_dict)
+
+
+//     console.log("here are the timestep filt nodes:")
+//     console.log(filt_nodes)
+    
+//     filterLinks(data);
+//     console.log("here are the timestep filt links:")
+//     console.log(filt_links)
+
+//     RedrawGraph(data)  
 //   });
+
 // }
-
-
-
 
 
 function FilterNodesAndLinksOnExpandClick(childNodes, parentCoords) {
@@ -242,7 +356,7 @@ function Bound(index) {
   return Math.min(data.nodes.length -2, index)
 }
 
-function ValidLink(sourceindex, targetindex, node_dict)
+function ValidLink(sourceindex, targetindex, node_dict, data)
 {    
       return (//element.value >= threshold && 
               node_dict[sourceindex] == 1 &&
@@ -253,16 +367,20 @@ function ValidLink(sourceindex, targetindex, node_dict)
 
 function filterLinks(data) {
     console.log("filterLinks data", data)
-      console.log("node_dict", node_dict)
+      console.log("filterLinks node_dict", node_dict)
 
     filt_links = data.links.filter(function(element){
-          var sourceindex = 0
+          if(element.source == 1178 && element.target == 1176) {
+            console.log("1178")
+          }
+           var sourceindex = 0
           var targetindex = 0
           if (typeof element.source=="number" || typeof element.source=="string") {sourceindex = element.source}
           else {sourceindex = element.source.name}
           if (typeof element.target=="number" || typeof element.source=="string") {targetindex = element.target}
           else {targetindex = element.target.name}
-          return ValidLink(sourceindex, targetindex, node_dict)
+          
+          return ValidLink(sourceindex, targetindex, node_dict, data)
       })
       console.log("filt_linkes", filt_links)
   }
@@ -329,7 +447,7 @@ function RedrawGraph(data, parentCoords)
         // })
         .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
-        .style("fill", function(d) { 
+        .style("fill", function(d) { //console.log("d", d); console.log('globalID_dict', globalID_dict);
                                      globalID_dict[d.globalID] = d;
                                      return ChooseFill(d, data); })
                                       
@@ -388,7 +506,6 @@ function max(a, b)
 {
   if (a > b) {return a}
   else {return b}
-
 }
 
 function CopyDict(from_dict)
@@ -488,15 +605,6 @@ function initializeSliders(force, svg, color) {
 	                  });
 
 
-
-	// $( "#LevelSlider" ).slider({min: 0, animate: "slow", step: 1,
-	//                       value: 0,
-	//                       change: function(event, ui) {
-	//                         force.charge(-ui.value);
-	//                         RedrawGraph()
-	//                        }
-	//                   });
-
 	$( "#LevelSlider" ).slider({min: 0, animate: "slow",
 	                            step: 2, value: hierarchyLevel, 
 	                            change: function(event, ui) {
@@ -528,8 +636,8 @@ function initializeSliders(force, svg, color) {
                                     globalTimeIndex = index
 
                                     console.log("timeslider: nodes.length", data.nodes.length)
-                                    TimeStepGraph(data, globalTimeIndex, prevIndex)
-                                   // LoadData()
+                                   // TimeStepGraph(globalTimeIndex, prevIndex)
+                                    LoadData()
                                   }                                  
                                   //FilterNodesAndLinks()
                                   //RedrawGraph() 
