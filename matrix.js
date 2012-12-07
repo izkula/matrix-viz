@@ -86,6 +86,8 @@ function LoadData() {
         .nodes(data.nodes)
         .links(data.links)
         .charge(function(d) { globalID_dict[d.globalID] = d; return (d.group + 1)*initCharge})
+       // .linkDistance(function(d){ return d.group + 1})
+        .friction(0.8)
         .start();
     // initializeSliders(data, force, svg, color); //Changed this so that the sliders
     //now access the global data variable instead of just the data variable passed at initialization
@@ -398,8 +400,10 @@ function ChildrenDisplayed(d, data)
   //console.log("data.nodes", data.nodes)
   for (var i=0; i<d.children.length; i++) {
     var firstLayer = data.nodes[d.children[i]]
-    if(node_dict[firstLayer.children[0]] == 1) {
-      return true
+    for (var j=0; j<firstLayer.children.length; j++) {
+      if(node_dict[firstLayer.children[j]] == 1) {
+        return true
+      }
     }
   }
   return false
@@ -409,7 +413,7 @@ function ChildrenDisplayed(d, data)
 function ChooseFill(d, data) {
   //console.log(node_dict); 
   if(d.name == data.nodes.length - 1) {return "blue"} 
-  else if (d.children[0] == d.name || !ChildrenDisplayed(d, data)) {return "green" } 
+  else if (d.children[0] == d.name || !ChildrenDisplayed(d, data)) {return "orange" } 
   else { return "lightblue" }
        // return color(d.group)
 }
@@ -419,14 +423,16 @@ function ChooseFill(d, data) {
 // of the parent
 function RedrawGraph(data, parentCoords)  
 {
-    console.log("Redraw filt_nodes", filt_nodes)
-    console.log("Redraw filt_links", filt_links)
-    console.log("Redraw data", data)
+   // console.log("Redraw filt_nodes", filt_nodes)
+   // console.log("Redraw filt_links", filt_links)
+   // console.log("Redraw data", data)
 
 
   	force
       .nodes(filt_nodes)
       .links(filt_links)
+      .friction(0.8)
+
      //  .start();
 
       var node = svg.selectAll("circle.node")
@@ -450,22 +456,35 @@ function RedrawGraph(data, parentCoords)
         .style("fill", function(d) { //console.log("d", d); console.log('globalID_dict', globalID_dict);
                                      globalID_dict[d.globalID] = d;
                                      return ChooseFill(d, data); })
-                                      
+        .style("opacity", 1.0)  
+        .style("stroke-width", 1.0)  
+        .style("stroke", "white")                     
+                   
         .on("click", click)
         .call(force.drag);
 
       node.select("title").remove();  // remove the old title
       node.append("title")
-        .text(function(d) { return d.name; });
+        //.text(function(d) { return d.name; });
 
       node.transition()
+        .duration(1)
+
         .attr("class", "node")
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
+        .style("opacity", 1.0)
+        .style("stroke-width", 1.0)   
+        .style("stroke", "white")                     
+                  
+
         .style("fill", function(d) { globalID_dict[d.globalID] = d; 
                                      return ChooseFill(d, data); })
+       
+
 
       node.exit().transition()
-        .style("fill", function(d) { globalID_dict[d.globalID] = d; return "white"})
+        .duration(1)
+        .style("opacity", function(d) { globalID_dict[d.globalID] = d; return 0})
         .style("stroke-width", 0)
         .remove()
 
@@ -474,7 +493,9 @@ function RedrawGraph(data, parentCoords)
 
       link.enter().insert("line", "circle.node")
           .attr("class", "link")
-          .style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value/100) }})
+          //.style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value) }})
+          .style("stroke", "black")
+          .style("stroke-opacity", function(d) { console.log(d.value); return (d.value+5)/100 })
           .transition()
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
@@ -483,6 +504,8 @@ function RedrawGraph(data, parentCoords)
       
       link.exit().transition()
           .style("stroke-width", 0)
+          .style("stroke-opacity", 0)
+          .duration(1)
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
           .attr("x2", function(d) { return d.target.x; })
@@ -572,6 +595,20 @@ function click(d)
   }
 }
 
+function EnsureParentsAreVisible()
+{
+  for(var i =0; i<DictMax(node_dict); i++) {
+    if (node_dict[i] == 1) {
+      var node = data.nodes[i]
+      while(node.parent != -1) {
+        node_dict[node.parent] = 1
+        node = data.nodes[node.parent]
+      }
+    }
+  }
+}
+
+
 
 
 //function initializeSliders(data, force, svg, color) {
@@ -596,10 +633,10 @@ function initializeSliders(force, svg, color) {
                     }
                   });
 
-	$( "#RepulsionSlider" ).slider({max: 200, min: 5, animate: "slow", 
+	$( "#RepulsionSlider" ).slider({max: 1000, min: 5, animate: "slow", 
 	                      value: -initCharge,
 	                      change: function(event, ui) {
-	                        force.charge(-ui.value);
+	                        force.charge(function(d) {return -(d.group+1)*ui.value});
 	                        RedrawGraph(data)
 	                       }
 	                  });
@@ -651,17 +688,18 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
                               globalClusterMetric = ui.value;
                               console.log('globalClusterMetric', globalClusterMetric)
                               for(var i=0; i < data.nodes.length; i++) {
-                                    console.log(i, data.nodes[i].metric)
+                                  //  console.log(i, data.nodes[i].metric)
                                     if (data.nodes[i].metric >  globalClusterMetric ) {
                                           node_dict[i] = 0
                                     } else {
-                                      if (data.nodes[i].group % 2 == 0 || data.nodes[i].group == data.nodes.length - 1) {
+                                      if (data.nodes[i].group % 2 == 0 || i == data.nodes.length - 1) {
                                           node_dict[i] = 1
                                         } else {
                                           node_dict[i] = 0
                                         }
                                     }
-                                  }                                
+                                  }          
+                              EnsureParentsAreVisible()                      
                               FilterNodesAndLinks()
                               RedrawGraph(data) 
                          } 
