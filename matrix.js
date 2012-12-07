@@ -368,8 +368,8 @@ function ValidLink(sourceindex, targetindex, node_dict, data)
 }
 
 function filterLinks(data) {
-    console.log("filterLinks data", data)
-      console.log("filterLinks node_dict", node_dict)
+   //* console.log("filterLinks data", data)
+     //* console.log("filterLinks node_dict", node_dict)
 
     filt_links = data.links.filter(function(element){
           if(element.source == 1178 && element.target == 1176) {
@@ -384,7 +384,7 @@ function filterLinks(data) {
           
           return ValidLink(sourceindex, targetindex, node_dict, data)
       })
-      console.log("filt_linkes", filt_links)
+  //*    console.log("filt_linkes", filt_links)
   }
 
 
@@ -465,7 +465,7 @@ function RedrawGraph(data, clicked, parentCoords)
 
       node.select("title").remove();  // remove the old title
       node.append("title")
-        //.text(function(d) { return d.name; });
+        .text(function(d) { return d.name; });
 
       node.transition()
         .duration(1)
@@ -495,7 +495,7 @@ function RedrawGraph(data, clicked, parentCoords)
           .attr("class", "link")
           //.style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value) }})
           .style("stroke", "black")
-          .style("stroke-opacity", function(d) { console.log(d.value); return (d.value+5)/100 })
+          .style("stroke-opacity", function(d) { return (d.value+5)/100 })
           .transition()
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
@@ -513,7 +513,7 @@ function RedrawGraph(data, clicked, parentCoords)
           .remove();
 
       force.on("tick", function() {
-         // if((force.alpha() < 0.03 || force.alpha > 0.09)) {
+          //if((force.alpha() < 0.03 || force.alpha > 0.09)) {
             link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
                 .attr("x2", function(d) { return d.target.x; })
