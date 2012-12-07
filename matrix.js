@@ -368,9 +368,9 @@ function ValidLink(sourceindex, targetindex, node_dict, data)
 }
 
 function filterLinks(data) {
-   //* console.log("filterLinks data", data)
-     //* console.log("filterLinks node_dict", node_dict)
-
+    console.log("filterLinks data", data)
+    console.log("filterLinks node_dict", node_dict)
+   
     filt_links = data.links.filter(function(element){
           if(element.source == 1178 && element.target == 1176) {
             console.log("1178")
@@ -384,7 +384,7 @@ function filterLinks(data) {
           
           return ValidLink(sourceindex, targetindex, node_dict, data)
       })
-  //*    console.log("filt_linkes", filt_links)
+      console.log("filt_linkes", filt_links)
   }
 
 
@@ -468,7 +468,7 @@ function RedrawGraph(data, clicked, parentCoords)
         .text(function(d) { return d.name; });
 
       node.transition()
-        .duration(1)
+       // .duration(1)
 
         .attr("class", "node")
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
@@ -483,7 +483,7 @@ function RedrawGraph(data, clicked, parentCoords)
 
 
       node.exit().transition()
-        .duration(1)
+       // .duration(1)
         .style("opacity", function(d) { globalID_dict[d.globalID] = d; return 0})
         .style("stroke-width", 0)
         .remove()
@@ -505,7 +505,7 @@ function RedrawGraph(data, clicked, parentCoords)
       link.exit().transition()
           .style("stroke-width", 0)
           .style("stroke-opacity", 0)
-          .duration(1)
+        //  .duration(1)
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
           .attr("x2", function(d) { return d.target.x; })
@@ -539,8 +539,8 @@ function CopyDict(from_dict)
   for(var i in from_dict) {
     to_dict[i] = from_dict[i];
   }
-  console.log("to", to_dict)
-  console.log("from", from_dict)
+//  console.log("to", to_dict)
+//  console.log("from", from_dict)
   return to_dict
 }
 
@@ -584,8 +584,10 @@ function click(d)
     var coords = { x: d.x, y: d.y, name: d.name, index: parentIndex }
     console.log("had coords "+JSON.stringify(coords))
     node_dict[d.name] = 1 
-//    AddChildren(node_dict, data.nodes[d.name].children)
-//    FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+    //AddChildren(node_dict, data.nodes[d.name].children)
+  //  FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+//      FilterNodesAndLinks()
+
 
     for(var i=0; i<d.children.length; i++) {
       AddChildren(node_dict, data.nodes[d.children[i]].children)
@@ -635,7 +637,7 @@ function initializeSliders(force, svg, color) {
                     }
                   });
 
-	$( "#RepulsionSlider" ).slider({max: 1000, min: 5, animate: "slow", 
+	$( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
 	                      value: -initCharge,
 	                      change: function(event, ui) {
 	                        force.charge(function(d) {return -(d.group+1)*ui.value});
