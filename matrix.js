@@ -455,13 +455,12 @@ function RedrawGraph(data, parentCoords)
 
       node.select("title").remove();  // remove the old title
       node.append("title")
-        //.text(function(d) { return d.name; });
+          .text(function(d) { return d.name; });
 
       node.transition()
         .duration(1)
 
         .attr("class", "node")
-        .duration(0)
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
         .style("opacity", 1.0)
         .style("stroke-width", 1.0)   
@@ -486,7 +485,7 @@ function RedrawGraph(data, parentCoords)
           .attr("class", "link")
           //.style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value) }})
           .style("stroke", "black")
-          .style("stroke-opacity", function(d) { console.log(d.value); return (d.value+5)/100 })
+          .style("stroke-opacity", function(d) { return (d.value+5)/100 })
           .transition()
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
