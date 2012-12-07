@@ -11,6 +11,7 @@ var globalClusterMetric = 0.8
 var force, data, svg, color;
 var globalID_dict = {}
 var node_dict = {}
+var mousedown = false
 
 var filt_links, filt_nodes;
 //Treat 'data' as a global variable so that it
@@ -97,7 +98,7 @@ function LoadData() {
     FilterNodesAndLinks()
     $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
 
-    RedrawGraph(data)  
+    RedrawGraphNoShow(data)  
     console.log('data.nodes.length', data.nodes.length)
   });
 }
@@ -418,11 +419,119 @@ function ChooseFill(d, data) {
        // return color(d.group)
 }
 
+var node_drag = d3.behavior.drag()
+        .on("dragstart", function() {mousedown = true})
+        .on("drag", function() {force.tick(); mousedown = true})
+        .on("dragend", function() {mousedown = false});
+
+
+
+function RedrawGraphNoShow(data, parentCoords)  
+{
+   // console.log("Redraw filt_nodes", filt_nodes)
+   // console.log("Redraw filt_links", filt_links)
+   // console.log("Redraw data", data)
+
+     console.log("redraw noshow")
+
+    force
+      .nodes(filt_nodes)
+      .links(filt_links)
+      //.friction(0.98)
+
+     //  .start();
+
+      var node = svg.selectAll("circle.node")
+          .data(filt_nodes)
+
+      node.enter().append("circle")
+        .attr("class", "node")
+        // .attr("cx", function(d) { 
+        //   if(parentCoords) {                      
+        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
+        //     return parentCoords.x
+        //   }
+        //   return undefined
+        // })
+        // .attr("cy", function(d) {
+        //   if(parentCoords) return parentCoords.y
+        //   return undefined
+        // })
+        .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})                     
+        .on("click", click)
+        .call(force.drag);
+       //.call(node_drag);
+
+      node.select("title").remove();  // remove the old title
+      node.append("title")
+        .text(function(d) { return d.name; });
+
+      node.transition()
+       // .duration(1)
+        .attr("class", "node")
+        .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
+       
+
+      var link = svg.selectAll("line.link")
+          .data(filt_links);
+
+      link.enter().insert("line", "circle.node")
+          .attr("class", "link")
+          //.style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value) }})
+          .transition();
+
+      force.on("tick", function() {
+          if(force.alpha() < 0.02 || mousedown == true) {
+            console.log(force.alpha())
+            link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; })
+                .style("stroke", "black")
+                .style("stroke-opacity", function(d) { return (d.value+5)/100 });
+
+            link.exit().transition()
+                .duration(1)
+                .style("stroke-width", 0)
+                .style("stroke-opacity", 0)
+                //  .duration(1)
+                .remove();
+
+            node.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; })
+                .style("opacity", 1.0)
+                .style("stroke-width", 1.0)   
+                .style("stroke", "white")                     
+                .style("fill", function(d) { globalID_dict[d.globalID] = d; 
+                                     return ChooseFill(d, data); })
+                .on("click", click)
+                .call(force.drag);
+               //.call(node_drag);
+
+
+            node.exit().transition()
+                .duration(1)
+                .style("opacity", function(d) { globalID_dict[d.globalID] = d; return 0})
+                .style("stroke-width", 0)
+                .remove()
+          }
+          if(force.alpha() < 0.0199) {
+            RedrawGraph(data)
+          }
+      });
+      force.start()
+}
+
+
+
+
+
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph(data, clicked, parentCoords)  
+function RedrawGraph(data, parentCoords)  
 {
+  console.log("redraw normal")
    // console.log("Redraw filt_nodes", filt_nodes)
    // console.log("Redraw filt_links", filt_links)
    // console.log("Redraw data", data)
@@ -564,7 +673,6 @@ function AddChildren(node_dict, children)
 function click(d)
 {
   if (d3.event.shiftKey) {
-
     prev_node_dict = CopyDict(node_dict)
     console.log("prev_node_dict", prev_node_dict)
     console.log("parent", d.parent)
@@ -575,7 +683,7 @@ function click(d)
 
     FilterNodesAndLinks()
     console.log("node_dict", node_dict)
-    RedrawGraph(data, true);
+    RedrawGraph(data);
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
     prev_node_dict = CopyDict(node_dict)
@@ -595,7 +703,7 @@ function click(d)
       FilterNodesAndLinks()
     }
     
-    RedrawGraph(data, true, coords);
+    RedrawGraph(data, coords);
   }
 }
 
