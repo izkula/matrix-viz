@@ -79,9 +79,14 @@ function LoadData() {
     data = graph
     node_dict = {}
     prev_node_dict = {}
+    prev2_node_dict = {}
+    prev3_node_dict = {}
+    prev4_node_dict = {}
+    prev5_node_dict = {}
     CheckMaxHierarchyLevel(data, hierarchyLevel)
     FilterNodeDict(data, hierarchyLevel, node_dict)
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
+
 
     force
         .nodes(data.nodes)
@@ -203,7 +208,8 @@ function TimeStepGraph(globalTimeIndex, prevIndex, nodeDict) {
     console.log("data", data)
     console.log("curr_data", curr_data)
     prev_node_dict = {}
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
+
     node_dict = {}
 
     CheckMaxHierarchyLevel(curr_data, hierarchyLevel)
@@ -481,7 +487,7 @@ function RedrawGraphNoShow(data, parentCoords)
           .transition();
 
       force.on("tick", function() {
-          if(force.alpha() < 0.02 || mousedown == true) {
+          if(force.alpha() < 0.006 || mousedown == true) {
             console.log(force.alpha())
             link.attr("x1", function(d) { return d.source.x; })
                 .attr("y1", function(d) { return d.source.y; })
@@ -515,7 +521,7 @@ function RedrawGraphNoShow(data, parentCoords)
                 .style("stroke-width", 0)
                 .remove()
           }
-          if(force.alpha() < 0.0199) {
+          if(force.alpha() < 0.0059) {
             RedrawGraph(data)
           }
       });
@@ -673,7 +679,7 @@ function AddChildren(node_dict, children)
 function click(d)
 {
   if (d3.event.shiftKey) {
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
     console.log("prev_node_dict", prev_node_dict)
     console.log("parent", d.parent)
 //    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name, data)
@@ -685,8 +691,9 @@ function click(d)
     console.log("node_dict", node_dict)
     RedrawGraph(data);
   } else {
-  //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
-    prev_node_dict = CopyDict(node_dict)
+  //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER 
+    CopyUndoDicts()
+
     console.log("name rclick", d.name)
     var parentIndex = filt_nodes.indexOf(data.nodes[d.name])
     var coords = { x: d.x, y: d.y, name: d.name, index: parentIndex }
@@ -718,6 +725,15 @@ function EnsureParentsAreVisible()
       }
     }
   }
+}
+
+function CopyUndoDicts()
+{
+    prev5_node_dict = CopyDict(prev4_node_dict)
+    prev4_node_dict = CopyDict(prev3_node_dict)
+    prev3_node_dict = CopyDict(prev2_node_dict)
+    prev2_node_dict = CopyDict(prev_node_dict)
+    prev_node_dict = CopyDict(node_dict)
 }
 
 
@@ -796,7 +812,7 @@ function initializeSliders(force, svg, color) {
 $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS BUGGY
                           step: 0.01, value: globalClusterMetric, 
                           change: function(event, ui) {
-                              prev_node_dict = CopyDict(node_dict)
+                              CopyUndoDicts()
                               globalClusterMetric = ui.value;
                               console.log('globalClusterMetric', globalClusterMetric)
                               for(var i=0; i < data.nodes.length; i++) {
@@ -820,7 +836,12 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
 $( "#UndoButton" ).button({ label: "Undo" });
 
 $("#UndoButton").click(function() {
+    console.log("undo")
     node_dict = CopyDict(prev_node_dict)
+    prev_node_dict = CopyDict(prev2_node_dict)
+    prev2_node_dict = CopyDict(prev3_node_dict)
+    prev3_node_dict = CopyDict(prev4_node_dict)
+    prev4_node_dict = CopyDict(prev5_node_dict)
     FilterNodesAndLinks()
     RedrawGraph(data)
 })
