@@ -88,7 +88,7 @@ function LoadData() {
         .links(data.links)
         .charge(function(d) { globalID_dict[d.globalID] = d; return (d.group + 1)*initCharge})
        // .linkDistance(function(d){ return d.group + 1})
-        .friction(0.8)
+        //.friction(0.98)
         .start();
     // initializeSliders(data, force, svg, color); //Changed this so that the sliders
     //now access the global data variable instead of just the data variable passed at initialization
@@ -369,8 +369,8 @@ function ValidLink(sourceindex, targetindex, node_dict, data)
 }
 
 function filterLinks(data) {
-    console.log("filterLinks data", data)
-      console.log("filterLinks node_dict", node_dict)
+   //* console.log("filterLinks data", data)
+     //* console.log("filterLinks node_dict", node_dict)
 
     filt_links = data.links.filter(function(element){
           if(element.source == 1178 && element.target == 1176) {
@@ -385,7 +385,7 @@ function filterLinks(data) {
           
           return ValidLink(sourceindex, targetindex, node_dict, data)
       })
-      console.log("filt_linkes", filt_links)
+  //*    console.log("filt_linkes", filt_links)
   }
 
 
@@ -422,7 +422,7 @@ function ChooseFill(d, data) {
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph(data, parentCoords)  
+function RedrawGraph(data, clicked, parentCoords)  
 {
    // console.log("Redraw filt_nodes", filt_nodes)
    // console.log("Redraw filt_links", filt_links)
@@ -432,7 +432,7 @@ function RedrawGraph(data, parentCoords)
   	force
       .nodes(filt_nodes)
       .links(filt_links)
-      .friction(0.8)
+      //.friction(0.98)
 
      //  .start();
 
@@ -455,7 +455,7 @@ function RedrawGraph(data, parentCoords)
 
       node.select("title").remove();  // remove the old title
       node.append("title")
-          .text(function(d) { return d.name; });
+        .text(function(d) { return d.name; });
 
       node.transition()
         .duration(1)
@@ -503,13 +503,15 @@ function RedrawGraph(data, parentCoords)
           .remove();
 
       force.on("tick", function() {
-          link.attr("x1", function(d) { return d.source.x; })
-              .attr("y1", function(d) { return d.source.y; })
-              .attr("x2", function(d) { return d.target.x; })
-              .attr("y2", function(d) { return d.target.y; });
+          //if((force.alpha() < 0.03 || force.alpha > 0.09)) {
+            link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
 
-          node.attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });
+            node.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+          //}
       });
       force.start()
 }
@@ -564,7 +566,7 @@ function click(d)
 
     FilterNodesAndLinks()
     console.log("node_dict", node_dict)
-    RedrawGraph();
+    RedrawGraph(data, true);
   } else if (d3.event.altKey) {
     if(d.name in timeSeriesNodes) {
       delete timeSeriesNodes[d.name]
@@ -589,7 +591,7 @@ function click(d)
       FilterNodesAndLinks()
     }
     
-    RedrawGraph(data, coords);
+    RedrawGraph(data, true, coords);
   }
 }
 
