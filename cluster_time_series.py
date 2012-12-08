@@ -475,13 +475,23 @@ def  ToNodeLinkJSON(clusterInfo, threshold, time_index, delay):
                 'parent':clusters[str(i)]['parent'], 'size':clusters[str(i)]['size'], 'timeseries':clusters[str(i)]['timeSeries'].tolist()})
             indexToName[str(i)] = counter
             counter += 1
+
     for i in range(len(W)):
-        if clusters[str(i)]['level'] > -1:
-            for j in range(i):
-                if W[i][j] >= threshold and clusters[str(j)]['level'] > -1:
-#                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
-                    links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(abs(W[i][j])*100)})
-        #NOT SURE IF YOU ARE SUPPOSED TO TAKE THE ABSOLUTE VALUE
+        parent = clusters[str(i)]['parent']
+        if parent != -1:
+            superparent = clusters[str(parent)]['parent']
+            links.append({'source':indexToName[str(i)], 'target':indexToName[str(parent)], 'value':int(abs(W[i][parent])*100)})
+            if superparent != -1:
+                links.append({'source':indexToName[str(i)], 'target':indexToName[str(superparent)], 'value':int(abs(W[i][superparent])*100)})
+
+    # The naive approach        
+#     for i in range(len(W)):
+#         if clusters[str(i)]['level'] > -1:
+#             for j in range(i):
+#                 if W[i][j] >= threshold and clusters[str(j)]['level'] > -1:
+# #                    links.append({'source':i, 'target':j, 'value':int(W[i][j]*100)})
+#                     links.append({'source':indexToName[str(i)], 'target':indexToName[str(j)], 'value':int(abs(W[i][j])*100)})
+#                     #NOT SURE IF YOU ARE SUPPOSED TO TAKE THE ABSOLUTE VALUE
 
     filename = str(time_index) + '_nodelinks.json'
     fp = open(filename, 'w')
@@ -532,7 +542,7 @@ if __name__ == "__main__":
     data = Clean(data)
     #numWin = 3
   #  At = WindowedMatrices(data, numWin, True);
-    delay = 10
+    delay = 20
     numPointsPerWindow = 50
     [At, numWin] = OverlappingWindows(data, delay, numPointsPerWindow)
 

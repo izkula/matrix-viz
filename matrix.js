@@ -11,6 +11,7 @@ var globalClusterMetric = 0.8
 var force, data, svg, color;
 var globalID_dict = {}
 var node_dict = {}
+var mousedown = false
 
 var filt_links, filt_nodes;
 //Treat 'data' as a global variable so that it
@@ -79,9 +80,14 @@ function LoadData() {
     data = graph
     node_dict = {}
     prev_node_dict = {}
+    prev2_node_dict = {}
+    prev3_node_dict = {}
+    prev4_node_dict = {}
+    prev5_node_dict = {}
     CheckMaxHierarchyLevel(data, hierarchyLevel)
     FilterNodeDict(data, hierarchyLevel, node_dict)
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
+
 
     force
         .nodes(data.nodes)
@@ -98,7 +104,7 @@ function LoadData() {
     FilterNodesAndLinks()
     $( "#LevelSlider" ).slider( "option", "max", data.nodes[data.nodes.length - 1]['group'] );
 
-    RedrawGraph(data)  
+    RedrawGraphNoShow(data)  
     console.log('data.nodes.length', data.nodes.length)
   });
 }
@@ -203,7 +209,8 @@ function TimeStepGraph(globalTimeIndex, prevIndex, nodeDict) {
     console.log("data", data)
     console.log("curr_data", curr_data)
     prev_node_dict = {}
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
+
     node_dict = {}
 
     CheckMaxHierarchyLevel(curr_data, hierarchyLevel)
@@ -369,9 +376,9 @@ function ValidLink(sourceindex, targetindex, node_dict, data)
 }
 
 function filterLinks(data) {
-   //* console.log("filterLinks data", data)
-     //* console.log("filterLinks node_dict", node_dict)
-
+    console.log("filterLinks data", data)
+    console.log("filterLinks node_dict", node_dict)
+   
     filt_links = data.links.filter(function(element){
           if(element.source == 1178 && element.target == 1176) {
             console.log("1178")
@@ -385,7 +392,7 @@ function filterLinks(data) {
           
           return ValidLink(sourceindex, targetindex, node_dict, data)
       })
-  //*    console.log("filt_linkes", filt_links)
+      console.log("filt_linkes", filt_links)
   }
 
 
@@ -419,11 +426,119 @@ function ChooseFill(d, data) {
        // return color(d.group)
 }
 
+var node_drag = d3.behavior.drag()
+        .on("dragstart", function() {mousedown = true})
+        .on("drag", function() {force.tick(); mousedown = true})
+        .on("dragend", function() {mousedown = false});
+
+
+
+function RedrawGraphNoShow(data, parentCoords)  
+{
+   // console.log("Redraw filt_nodes", filt_nodes)
+   // console.log("Redraw filt_links", filt_links)
+   // console.log("Redraw data", data)
+
+     console.log("redraw noshow")
+
+    force
+      .nodes(filt_nodes)
+      .links(filt_links)
+      //.friction(0.98)
+
+     //  .start();
+
+      var node = svg.selectAll("circle.node")
+          .data(filt_nodes)
+
+      node.enter().append("circle")
+        .attr("class", "node")
+        // .attr("cx", function(d) { 
+        //   if(parentCoords) {                      
+        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
+        //     return parentCoords.x
+        //   }
+        //   return undefined
+        // })
+        // .attr("cy", function(d) {
+        //   if(parentCoords) return parentCoords.y
+        //   return undefined
+        // })
+        .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})                     
+        .on("click", click)
+        .call(force.drag);
+       //.call(node_drag);
+
+      node.select("title").remove();  // remove the old title
+      node.append("title")
+        .text(function(d) { return d.name; });
+
+      node.transition()
+       // .duration(1)
+        .attr("class", "node")
+        .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
+       
+
+      var link = svg.selectAll("line.link")
+          .data(filt_links);
+
+      link.enter().insert("line", "circle.node")
+          .attr("class", "link")
+          //.style("stroke-width", function(d) { if (d.value < threshold) { return 1 } else { return Math.sqrt(d.value) }})
+          .transition();
+
+      force.on("tick", function() {
+          if(force.alpha() < 0.006 || mousedown == true) {
+            console.log(force.alpha())
+            link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; })
+                .style("stroke", "black")
+                .style("stroke-opacity", function(d) { return (d.value+5)/100 });
+
+            link.exit().transition()
+                .duration(1)
+                .style("stroke-width", 0)
+                .style("stroke-opacity", 0)
+                //  .duration(1)
+                .remove();
+
+            node.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; })
+                .style("opacity", 1.0)
+                .style("stroke-width", 1.0)   
+                .style("stroke", "white")                     
+                .style("fill", function(d) { globalID_dict[d.globalID] = d; 
+                                     return ChooseFill(d, data); })
+                .on("click", click)
+                .call(force.drag);
+               //.call(node_drag);
+
+
+            node.exit().transition()
+                .duration(1)
+                .style("opacity", function(d) { globalID_dict[d.globalID] = d; return 0})
+                .style("stroke-width", 0)
+                .remove()
+          }
+          if(force.alpha() < 0.0059) {
+            RedrawGraph(data)
+          }
+      });
+      force.start()
+}
+
+
+
+
+
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph(data, clicked, parentCoords)  
+function RedrawGraph(data, parentCoords)  
 {
+  console.log("redraw normal")
    // console.log("Redraw filt_nodes", filt_nodes)
    // console.log("Redraw filt_links", filt_links)
    // console.log("Redraw data", data)
@@ -458,7 +573,7 @@ function RedrawGraph(data, clicked, parentCoords)
         .text(function(d) { return d.name; });
 
       node.transition()
-        .duration(1)
+       // .duration(1)
 
         .attr("class", "node")
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
@@ -473,7 +588,7 @@ function RedrawGraph(data, clicked, parentCoords)
 
 
       node.exit().transition()
-        .duration(1)
+       // .duration(1)
         .style("opacity", function(d) { globalID_dict[d.globalID] = d; return 0})
         .style("stroke-width", 0)
         .remove()
@@ -495,7 +610,7 @@ function RedrawGraph(data, clicked, parentCoords)
       link.exit().transition()
           .style("stroke-width", 0)
           .style("stroke-opacity", 0)
-          .duration(1)
+        //  .duration(1)
           .attr("x1", function(d) { return d.source.x; })
           .attr("y1", function(d) { return d.source.y; })
           .attr("x2", function(d) { return d.target.x; })
@@ -529,8 +644,8 @@ function CopyDict(from_dict)
   for(var i in from_dict) {
     to_dict[i] = from_dict[i];
   }
-  console.log("to", to_dict)
-  console.log("from", from_dict)
+//  console.log("to", to_dict)
+//  console.log("from", from_dict)
   return to_dict
 }
 
@@ -555,8 +670,7 @@ function AddChildren(node_dict, children)
 function click(d)
 {
   if (d3.event.shiftKey) {
-
-    prev_node_dict = CopyDict(node_dict)
+    CopyUndoDicts()
     console.log("prev_node_dict", prev_node_dict)
     console.log("parent", d.parent)
 //    RemoveChildren(node_dict, data.nodes[d.parent].children, data.nodes[d.parent].name, data)
@@ -566,7 +680,7 @@ function click(d)
 
     FilterNodesAndLinks()
     console.log("node_dict", node_dict)
-    RedrawGraph(data, true);
+    RedrawGraph(data);
   } else if (d3.event.altKey) {
     if(d.name in timeSeriesNodes) {
       delete timeSeriesNodes[d.name]
@@ -574,16 +688,20 @@ function click(d)
       timeSeriesNodes[d.name] = true;
     }
     DrawLineGraph(timeSeriesNodes)
+
   } else {
-  //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER   
-    prev_node_dict = CopyDict(node_dict)
+  //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER 
+    CopyUndoDicts()
+
     console.log("name rclick", d.name)
     var parentIndex = filt_nodes.indexOf(data.nodes[d.name])
     var coords = { x: d.x, y: d.y, name: d.name, index: parentIndex }
     console.log("had coords "+JSON.stringify(coords))
     node_dict[d.name] = 1 
-//    AddChildren(node_dict, data.nodes[d.name].children)
-//    FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+    //AddChildren(node_dict, data.nodes[d.name].children)
+  //  FilterNodesAndLinksOnExpandClick(data.nodes[d.name].children, coords)
+//      FilterNodesAndLinks()
+
 
     for(var i=0; i<d.children.length; i++) {
       AddChildren(node_dict, data.nodes[d.children[i]].children)
@@ -591,7 +709,7 @@ function click(d)
       FilterNodesAndLinks()
     }
     
-    RedrawGraph(data, true, coords);
+    RedrawGraph(data, coords);
   }
 }
 
@@ -617,6 +735,14 @@ function EnsureParentsAreVisible()
 //   }
 // }
 
+function CopyUndoDicts()
+{
+    prev5_node_dict = CopyDict(prev4_node_dict)
+    prev4_node_dict = CopyDict(prev3_node_dict)
+    prev3_node_dict = CopyDict(prev2_node_dict)
+    prev2_node_dict = CopyDict(prev_node_dict)
+    prev_node_dict = CopyDict(node_dict)
+}
 
 
 //function initializeSliders(data, force, svg, color) {
@@ -641,7 +767,7 @@ function initializeSliders(force, svg, color) {
                     }
                   });
 
-	$( "#RepulsionSlider" ).slider({max: 1000, min: 5, animate: "slow", 
+	$( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
 	                      value: -initCharge,
 	                      change: function(event, ui) {
 	                        force.charge(function(d) {return -(d.group+1)*ui.value});
@@ -694,7 +820,7 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
 
                           step: 0.01, value: globalClusterMetric, 
                           change: function(event, ui) {
-                              prev_node_dict = CopyDict(node_dict)
+                              CopyUndoDicts()
                               globalClusterMetric = ui.value;
                               console.log('globalClusterMetric', globalClusterMetric)
                               for(var i=0; i < data.nodes.length; i++) {
@@ -718,7 +844,12 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
 $( "#UndoButton" ).button({ label: "Undo" });
 
 $("#UndoButton").click(function() {
+    console.log("undo")
     node_dict = CopyDict(prev_node_dict)
+    prev_node_dict = CopyDict(prev2_node_dict)
+    prev2_node_dict = CopyDict(prev3_node_dict)
+    prev3_node_dict = CopyDict(prev4_node_dict)
+    prev4_node_dict = CopyDict(prev5_node_dict)
     FilterNodesAndLinks()
     RedrawGraph(data)
 })
