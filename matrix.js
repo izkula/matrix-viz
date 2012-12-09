@@ -1,5 +1,5 @@
 
-var width = 960,
+var width = 760,
     height = 750;
 
 var threshold = 50; 
@@ -18,7 +18,7 @@ var filt_links, filt_nodes;
 // can be accessed everywhere. We may change this
 // to account for using multiple datasets (or time periods)
 // at the same time
-var timeSeriesNodes = {}
+
 
 $(function() {
 	console.log('inside matrix.js')
@@ -726,14 +726,60 @@ function EnsureParentsAreVisible()
   }
 }
 
-// var h_ts = 300
-// var w_ts = 400
-// var svg_ts
-// function DrawLineGraph(tsNodes) {
-//   if(!svg_ts) {
-//     svg_ts
-//   }
-// }
+function formatTimeSeriesForRickshaw(tsArray) {
+  var x = 0;
+  var coords = []
+  for(var i = 0; i < tsArray.length; i++) {
+    coords[i] = { x: i, y: tsArray[i] }
+  }
+  return coords
+}
+
+function getTimeSeries(tsNodes) {
+  var seriesData = []
+  for(node in tsNodes) {
+    var currNode = data.nodes[node]
+    var currTimeSeries = formatTimeSeriesForRickshaw(currNode['timeseries'])
+
+    var currRSdatum = {}
+    currRSdatum['data'] = currTimeSeries
+    currRSdatum['color'] = 'steelblue'
+    currRSdatum['name'] = currNode
+    seriesData.push(currRSdatum)
+  }
+  return seriesData
+}
+
+var h_ts = 400
+var w_ts = 500
+var timeSeriesNodes = {}
+var tsGraph
+var tsData = {}
+function DrawLineGraph(tsNodes) {
+  var tsData = getTimeSeries(tsNodes)
+
+  $('#tsChart').html('')
+  $('#y-axis').html('')
+
+  tsGraph = new Rickshaw.Graph({
+      element: document.querySelector("#tsChart"),
+      renderer: 'line',
+      width: w_ts,
+      height: h_ts,
+      series: tsData
+  });
+
+  var yAxis = new Rickshaw.Graph.Axis.Y({
+    graph: tsGraph,
+    element: document.getElementById('y-axis'),
+    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+    orientation: 'left'
+  });
+
+  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+
+  tsGraph.render();
+}
 
 function CopyUndoDicts()
 {
