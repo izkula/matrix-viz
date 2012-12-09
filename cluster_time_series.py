@@ -542,7 +542,7 @@ if __name__ == "__main__":
     data = Clean(data)
     #numWin = 3
   #  At = WindowedMatrices(data, numWin, True);
-    delay = 20
+    delay = 1
     numPointsPerWindow = 50
     [At, numWin] = OverlappingWindows(data, delay, numPointsPerWindow)
 
