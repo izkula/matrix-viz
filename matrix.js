@@ -683,6 +683,7 @@ function click(d)
     RedrawGraph(data);
   } else if (d3.event.altKey) {
     if(d.name in timeSeriesNodes) {
+      RemoveHighlight(d.name)
       delete timeSeriesNodes[d.name]
     } else {
       timeSeriesNodes[d.name] = true;
@@ -737,7 +738,7 @@ function formatTimeSeriesForRickshaw(tsArray) {
 
 function getTimeSeries(tsNodes) {
   var seriesData = []
-  for(node in tsNodes) {
+  for(var node in tsNodes) {
     var currNode = data.nodes[node]
     var currTimeSeries = formatTimeSeriesForRickshaw(currNode['timeseries'])
 
@@ -750,6 +751,23 @@ function getTimeSeries(tsNodes) {
   return seriesData
 }
 
+function RemoveHighlight(nodeNum) {
+  $('.node:contains("'+nodeNum+'")').css({
+     'stroke-width': '1px',
+      stroke: 'white'
+  }) 
+}
+
+function HighlightSelectedNodes(tsNodes) {
+  for(var node in tsNodes) {
+    $('.node:contains("'+node+'")').css({
+      'stroke-width': '3px',
+      stroke: 'salmon'
+    }) 
+  }
+}
+
+
 var h_ts = 400
 var w_ts = 500
 var timeSeriesNodes = {}
@@ -757,6 +775,7 @@ var tsGraph
 var tsData = {}
 
 function DrawAllLineGraphs(tsNodes) {
+  HighlightSelectedNodes(tsNodes)
   var tsData = getTimeSeries(tsNodes)  
   var numGraphs = Object.keys(tsNodes).length;
   var graphHeight = (height - 40*numGraphs) / numGraphs 
@@ -780,6 +799,7 @@ function DrawAllLineGraphs(tsNodes) {
     $('.removeButton').click(function() {
       var nodeToRemove = parseInt($(this).parent().find('.graphName').text())
       delete timeSeriesNodes[nodeToRemove];
+      RemoveHighlight(nodeToRemove)
       DrawAllLineGraphs(timeSeriesNodes)
     })
   })
