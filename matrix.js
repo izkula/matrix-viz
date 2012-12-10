@@ -1,6 +1,6 @@
 
 var width = 760,
-    height = 750;
+    height = 600;
 
 var threshold = 50; 
 var initCharge = -25
@@ -756,10 +756,6 @@ var timeSeriesNodes = {}
 var tsGraph
 var tsData = {}
 
-function RemoveLineGraph() {
-
-}
-
 function DrawAllLineGraphs(tsNodes) {
   var tsData = getTimeSeries(tsNodes)  
   var numGraphs = Object.keys(tsNodes).length;
@@ -810,6 +806,16 @@ function DrawLineGraph(lineGraphData, divId, ht) {
     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
     orientation: 'left'
   });
+
+  // var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+  //   graph: graph,
+  //   formatter: function(series, x, y) {
+  //     // var date = '<span class="date">' + new Date(x * 1000).toUTCString() + '</span>';
+  //     // var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
+  //     var content = "(" + parseInt(x) + ", " + parseInt(y) + ")"
+  //     return content;
+  //   }
+} );
 
   var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
 
