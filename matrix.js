@@ -815,7 +815,7 @@ function DrawLineGraph(lineGraphData, divId, ht) {
   //     var content = "(" + parseInt(x) + ", " + parseInt(y) + ")"
   //     return content;
   //   }
-} );
+//} );
 
   var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
 
