@@ -527,6 +527,8 @@ function RedrawGraphNoShow(data, parentCoords)
           }
       });
       force.start()
+
+      HighlightSelectedNodes(timeSeriesNodes)
 }
 
 
@@ -578,8 +580,20 @@ function RedrawGraph(data, parentCoords)
         .attr("class", "node")
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
         .style("opacity", 1.0)
-        .style("stroke-width", 1.0)   
-        .style("stroke", "white")                     
+       // .style("stroke-width", 1.0)   
+        .style("stroke-width", function(d) {
+          if(parseInt(d.name) in timeSeriesNodes) {
+            return highlightWidth
+          } 
+          return 1.0
+        })
+        //.style("stroke", "white")
+        .style("stroke", function(d) {
+          if(parseInt(d.name) in timeSeriesNodes) {
+            return highlightColor
+          }
+          return "white"
+        })                     
                   
 
         .style("fill", function(d) { globalID_dict[d.globalID] = d; 
@@ -752,7 +766,9 @@ function getTimeSeries(tsNodes) {
 }
 
 function RemoveHighlight(nodeNum) {
-  $('.node:contains("'+nodeNum+'")').css({
+  $('.node:contains("'+nodeNum+'")').filter(function() {
+      return $(this).text() == nodeNum
+    }).css({
      'stroke-width': '1px',
       stroke: 'white'
   }) 
@@ -760,9 +776,11 @@ function RemoveHighlight(nodeNum) {
 
 function HighlightSelectedNodes(tsNodes) {
   for(var node in tsNodes) {
-    $('.node:contains("'+node+'")').css({
-      'stroke-width': '3px',
-      stroke: 'salmon'
+    $('.node:contains("'+node+'")').filter(function() {
+      return $(this).text() == node
+    }).css({
+      'stroke-width': highlightWidth,
+      stroke: highlightColor
     }) 
   }
 }
@@ -773,7 +791,8 @@ var w_ts = 500
 var timeSeriesNodes = {}
 var tsGraph
 var tsData = {}
-
+var highlightColor = "salmon"
+var highlightWidth = '3px'
 function DrawAllLineGraphs(tsNodes) {
   HighlightSelectedNodes(tsNodes)
   var tsData = getTimeSeries(tsNodes)  
