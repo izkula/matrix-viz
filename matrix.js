@@ -744,7 +744,7 @@ function getTimeSeries(tsNodes) {
     var currRSdatum = {}
     currRSdatum['data'] = currTimeSeries
     currRSdatum['color'] = 'steelblue'
-    currRSdatum['name'] = currNode
+    currRSdatum['name'] = currNode['name']
     seriesData.push(currRSdatum)
   }
   return seriesData
@@ -756,12 +756,15 @@ var timeSeriesNodes = {}
 var tsGraph
 var tsData = {}
 
+function RemoveLineGraph() {
+
+}
+
 function DrawAllLineGraphs(tsNodes) {
   var tsData = getTimeSeries(tsNodes)  
   var numGraphs = Object.keys(tsNodes).length;
-  var graphHeight = height / numGraphs
+  var graphHeight = (height - 40*numGraphs) / numGraphs 
   // $('#timeSeries').html('')
-
   // for(var i=0; i < numGraphs; i++) {
   //   var graphId = "ts-chunk-"+i;
   //   $('#timeSeries').append("<div id=\'"+graphId+"\'><div class='y-axis'></div><div class='tsChart'></div></div>")
@@ -771,24 +774,33 @@ function DrawAllLineGraphs(tsNodes) {
     $('#timeSeries').html('')
     for(var i=0; i < numGraphs; i++) {
     var graphId = "ts-chunk-"+i;
-      $('#timeSeries').append("<div class='tsChunk' id=\'"+graphId+"\'><div class='y-axis'></div><div class='tsChart'></div></div>")
+      $('#timeSeries').append("<div class='tsChunk' id=\'"+graphId+"\'><div class='graphName'></div><a href='#' class='removeButton'>x</a><div class='y-axis'></div><div class='tsChart'></div></div>")
       DrawLineGraph(tsData[i], graphId, graphHeight)
     }  
     $('#timeSeries').fadeIn('fast', function() {
     })
+
+
+    $('.removeButton').click(function() {
+      var nodeToRemove = parseInt($(this).parent().find('.graphName').text())
+      delete timeSeriesNodes[nodeToRemove];
+      DrawAllLineGraphs(timeSeriesNodes)
+    })
   })
 }
 
-function DrawLineGraph(data, divId, ht) {
-  var graphElem = $('.tsChart', $('#'+divId))[0]
-  var axisElem = $('.y-axis', $('#'+divId))[0]
+function DrawLineGraph(lineGraphData, divId, ht) {
+  var graphSelector = $('#'+divId)
+  $('.graphName', graphSelector).html(lineGraphData['name'])
+  var graphElem = $('.tsChart', graphSelector)[0]
+  var axisElem = $('.y-axis', graphSelector)[0]
 
   var graph = new Rickshaw.Graph({
       element: graphElem,
       renderer: 'line',
       width: w_ts,
       height: ht,
-      series: [data],
+      series: [lineGraphData],
       min: 'auto'
   });
 
