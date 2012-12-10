@@ -687,7 +687,7 @@ function click(d)
     } else {
       timeSeriesNodes[d.name] = true;
     }
-    DrawLineGraph(timeSeriesNodes)
+    DrawAllLineGraphs(timeSeriesNodes)
 
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER 
@@ -755,31 +755,81 @@ var w_ts = 500
 var timeSeriesNodes = {}
 var tsGraph
 var tsData = {}
-function DrawLineGraph(tsNodes) {
-  var tsData = getTimeSeries(tsNodes)
 
-  $('#tsChart').html('')
-  $('#y-axis').html('')
+function DrawAllLineGraphs(tsNodes) {
+  var tsData = getTimeSeries(tsNodes)  
+  var numGraphs = Object.keys(tsNodes).length;
+  var graphHeight = height / numGraphs
+  // $('#timeSeries').html('')
 
-  tsGraph = new Rickshaw.Graph({
-      element: document.querySelector("#tsChart"),
+  // for(var i=0; i < numGraphs; i++) {
+  //   var graphId = "ts-chunk-"+i;
+  //   $('#timeSeries').append("<div id=\'"+graphId+"\'><div class='y-axis'></div><div class='tsChart'></div></div>")
+  //   DrawLineGraph(tsData[i], graphId, graphHeight)
+  // }  
+  $('#timeSeries').fadeOut('fast', function() {
+    $('#timeSeries').html('')
+    for(var i=0; i < numGraphs; i++) {
+    var graphId = "ts-chunk-"+i;
+      $('#timeSeries').append("<div class='tsChunk' id=\'"+graphId+"\'><div class='y-axis'></div><div class='tsChart'></div></div>")
+      DrawLineGraph(tsData[i], graphId, graphHeight)
+    }  
+    $('#timeSeries').fadeIn('fast', function() {
+    })
+  })
+}
+
+function DrawLineGraph(data, divId, ht) {
+  var graphElem = $('.tsChart', $('#'+divId))[0]
+  var axisElem = $('.y-axis', $('#'+divId))[0]
+
+  var graph = new Rickshaw.Graph({
+      element: graphElem,
       renderer: 'line',
       width: w_ts,
-      height: h_ts,
-      series: tsData
+      height: ht,
+      series: [data],
+      min: 'auto'
   });
 
   var yAxis = new Rickshaw.Graph.Axis.Y({
-    graph: tsGraph,
-    element: document.getElementById('y-axis'),
+    graph: graph,
+    element: axisElem,
     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
     orientation: 'left'
   });
 
-  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
 
-  tsGraph.render();
+  graph.render();
 }
+
+// function DrawLineGraph(tsNodes) {
+//   var tsData = getTimeSeries(tsNodes)
+
+//   $('#tsChart').html('')
+//   $('#y-axis').html('')
+
+//   tsGraph = new Rickshaw.Graph({
+//       element: document.querySelector("#tsChart"),
+//       renderer: 'line',
+//       width: w_ts,
+//       height: h_ts,
+//       series: tsData,
+//       min: 'auto'
+//   });
+
+//   var yAxis = new Rickshaw.Graph.Axis.Y({
+//     graph: tsGraph,
+//     element: document.getElementById('y-axis'),
+//     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+//     orientation: 'left'
+//   });
+
+//   var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+
+//   tsGraph.render();
+// }
 
 function CopyUndoDicts()
 {
