@@ -124,11 +124,12 @@ def CorrelationMatrices(At):
 
 #- Plots all time series between indices start and end
 def Plot(A, start, end):
+    print "PLOting"
     fig = plt.figure()
     end = min(len(A[1,:]), end)
     for i in range(start, end+1):
         ax = plt.subplot(end-start, 1, i-start)
-        plt.plot(A[:,i])
+        plt.plot(A[:,(10*i)%300])
         plt.ylim([-0.3, 0.3])
         plt.xticks([])
         plt.yticks([])
@@ -136,7 +137,7 @@ def Plot(A, start, end):
         plt.yticks([-0.2, 0, 0.2])
     plt.xticks(np.arange(0, len(A), 100))
     fig.show()
-    fig.savefig('timeseries' + str(start) + '_' + str(end) + '.png')
+    fig.savefig('timeseries' + str(start) + '_' + str(end) + '.svg')
 
 #- Removes all time series with a covariance of 0
 def Clean(A):
@@ -543,7 +544,7 @@ if __name__ == "__main__":
     #numWin = 3
   #  At = WindowedMatrices(data, numWin, True);
     delay = 1
-    numPointsPerWindow = 50
+    numPointsPerWindow = 249
     [At, numWin] = OverlappingWindows(data, delay, numPointsPerWindow)
 
     AtClusters = []
@@ -558,7 +559,7 @@ if __name__ == "__main__":
         start = np.sum(clustersPerLevel[0:2])
         end = np.sum(clustersPerLevel[0:3])
         print "start", start, "end", end
-        PlotClusteredMatrix(clusterInfo['clusters'], filename, start, end)
+  #      PlotClusteredMatrix(clusterInfo['clusters'], filename, start, end)
         AtClusters.append(clusterInfo)
     for i in range(numWin):
         print "i: ", i, "clustersPerLevel: ", AtClusters[i]['levels']
@@ -577,7 +578,7 @@ if __name__ == "__main__":
    # HierarchicalCluster(data)
    # for i in range(9):
     #    HierarchicalCluster(At[i])
-    #    Plot(data, 10*i, 10*(i+1))
+    Plot(data, 10*1, 10*(10+1))
 
     #CorrelationMatrices(At)
   #  SortAndCluster(Ut, St, Vt)

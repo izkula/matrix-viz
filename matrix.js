@@ -1,5 +1,5 @@
 
-var width = 960,
+var width = 760,
     height = 750;
 
 var threshold = 50; 
@@ -26,6 +26,7 @@ var data_arr = {}
 // can be accessed everywhere. We may change this
 // to account for using multiple data_arr[forcesIndex]sets (or time periods)
 // at the same time
+
 
 $(function() {
 	console.log('inside matrix.js')
@@ -120,8 +121,8 @@ function LoadData() {
     FilterNodesAndLinks()
     $( "#LevelSlider" ).slider( "option", "max", data_arr[forcesIndex].nodes[data_arr[forcesIndex].nodes.length - 1]['group'] );
 
-    RedrawGraphNoShow()  
-    //RedrawGraph()  
+    //RedrawGraphNoShow()  
+    RedrawGraph()  
     console.log("forces", forces)
     console.log("filt_nodes_arr", filt_nodes_arr)
     console.log("filt_links_arr", filt_links_arr)
@@ -453,7 +454,8 @@ function ChildrenDisplayed(d)
 function ChooseFill(d) {
   //console.log(node_dict); 
   if(d.name == data_arr[forcesIndex].nodes.length - 1) {return "blue"} 
-  else if (d.children[0] == d.name || !ChildrenDisplayed(d)) {return "orange"} 
+  else if (d.children[0] == d.name || !ChildrenDisplayed(d)) 
+    {return "orange"} 
   else { return "lightblue" }
        // return color(d.group)
 }
@@ -624,7 +626,7 @@ function RedrawGraphNoShow(parentCoords)
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph(parentCoords)  
+function RedrawGraph()  
 {
   console.log("redraw normal")
    // console.log("Redraw filt_nodes", filt_nodes)
@@ -644,17 +646,6 @@ function RedrawGraph(parentCoords)
 
       node.enter().append("circle")
         .attr("class", "node")
-        // .attr("cx", function(d) { 
-        //   if(parentCoords) {                      
-        //     console.log("node "+d.name+" will have x of "+parentCoords.x)
-        //     return parentCoords.x
-        //   }
-        //   return undefined
-        // })
-        // .attr("cy", function(d) {
-        //   if(parentCoords) return parentCoords.y
-        //   return undefined
-        // })
         .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
         .style("fill", function(d) { //console.log("d", d); console.log('globalID_dict', globalID_dict);
@@ -765,6 +756,7 @@ function AddChildren(node_dict, children)
   }
 }
 
+
 function click(d)
 {
   if (d3.event.shiftKey) {
@@ -778,7 +770,19 @@ function click(d)
 
     FilterNodesAndLinks()
     console.log("node_dict", node_dict)
+
     RedrawGraph();
+
+  } else if (d3.event.altKey) {
+    console.log("AlT!")
+    console.log(d)
+    if(d.name in timeSeriesNodes) {
+      delete timeSeriesNodes[d.name]
+    } else {
+      timeSeriesNodes[d.name] = true;
+    }
+    DrawLineGraph(timeSeriesNodes)
+
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER 
     CopyUndoDicts()
@@ -816,6 +820,61 @@ function EnsureParentsAreVisible()
   }
 }
 
+function formatTimeSeriesForRickshaw(tsArray) {
+  var x = 0;
+  var coords = []
+  for(var i = 0; i < tsArray.length; i++) {
+    coords[i] = { x: i, y: tsArray[i] }
+  }
+  return coords
+}
+
+function getTimeSeries(tsNodes) {
+  var seriesData = []
+  for(node in tsNodes) {
+    var currNode = data_arr[forcesIndex].nodes[node]
+    var currTimeSeries = formatTimeSeriesForRickshaw(currNode['timeseries'])
+
+    var currRSdatum = {}
+    currRSdatum['data'] = currTimeSeries
+    currRSdatum['color'] = 'steelblue'
+    currRSdatum['name'] = currNode
+    seriesData.push(currRSdatum)
+  }
+  return seriesData
+}
+
+var h_ts = 400
+var w_ts = 500
+var timeSeriesNodes = {}
+var tsGraph
+var tsData = {}
+function DrawLineGraph(tsNodes) {
+  var tsData = getTimeSeries(tsNodes)
+
+  $('#tsChart').html('')
+  $('#y-axis').html('')
+
+  tsGraph = new Rickshaw.Graph({
+      element: document.querySelector("#tsChart"),
+      renderer: 'line',
+      width: w_ts,
+      height: h_ts,
+      series: tsData
+  });
+
+  var yAxis = new Rickshaw.Graph.Axis.Y({
+    graph: tsGraph,
+    element: document.getElementById('y-axis'),
+    tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+    orientation: 'left'
+  });
+
+  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+
+  tsGraph.render();
+}
+
 function CopyUndoDicts()
 {
     prev5_node_dict = CopyDict(prev4_node_dict)
@@ -824,8 +883,6 @@ function CopyUndoDicts()
     prev2_node_dict = CopyDict(prev_node_dict)
     prev_node_dict = CopyDict(node_dict)
 }
-
-
 
 
 //function initializeSliders(data, force, svg, color) {
@@ -894,12 +951,14 @@ function CopyUndoDicts()
                                    // TimeStepGraph(globalTimeIndex, prevIndex)
                                     forcesIndex = globalTimeIndex
                                     if(forces.hasOwnProperty(globalTimeIndex)) {
-                                       DrawForce()
-                                  //     LoadData()
+                                   //    DrawForce()
+                                       LoadData()
                                     } else {
                                       LoadData()
                                     }
-
+                                    console.log("timeslider: nodes.length", data.nodes.length)
+                                    var nodePositions = saveNodePositions();
+                                    LoadData(nodePositions)
                                   }                                  
                                   //FilterNodesAndLinks()
                                   //RedrawGraph() 
@@ -907,6 +966,7 @@ function CopyUndoDicts()
                             });
 
 $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS BUGGY
+
                           step: 0.01, value: globalClusterMetric, 
                           change: function(event, ui) {
                               CopyUndoDicts()
@@ -942,3 +1002,15 @@ $("#UndoButton").click(function() {
     RedrawGraph()
 })
 }
+
+
+
+function saveNodePositions() {
+  var nodePosMap = {}
+  for(var i=0; i < filt_nodes.length; i++) {
+    var curr = filt_nodes[i]
+    nodePosMap[curr.name]= { x: curr.x, y: curr.y }
+  }
+  return nodePosMap
+}
+
