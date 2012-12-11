@@ -51,6 +51,7 @@ $(function() {
   initializeSliders(svg, color);
   $("UndoButton").button("enable");
   $("PlayMovieButton").button("enable");
+    $("ResetButton").button("enable");
 
 });
 
@@ -137,6 +138,23 @@ function LoadData() {
     console.log("filt_nodes_arr", filt_nodes_arr)
     console.log("filt_links_arr", filt_links_arr)
     console.log('data_arr[forcesIndex].nodes.length', data_arr[forcesIndex].nodes.length)
+
+
+    var topNode = DictMax(node_dict)
+    var children1 = data_arr[forcesIndex].nodes[topNode].children
+    for(var i=0; i< children1.length; i++) {
+      timeSeriesNodes[data_arr[forcesIndex].nodes[children1[i]].name] = true;
+      var children2 = data_arr[forcesIndex].nodes[children1[i]].children
+          for(var j=0; j<children2.length; j++) {
+           // timeSeriesNodes[data_arr[forcesIndex].nodes[children2[i]].name] = true;
+          }
+    }
+    console.log("timeSeriesNodes", timeSeriesNodes)
+    HighlightSelectedNodes(timeSeriesNodes)
+    DrawAllLineGraphs(timeSeriesNodes)
+    RedrawGraph()
+
+
 
   });
 }
@@ -1038,7 +1056,7 @@ function initializeSliders(svg, color) {
                     }
                   });
 
-	$( "#RepulsionSlider" ).slider({max: 100, min: 5, animate: "slow", 
+	$( "#RepulsionSlider" ).slider({max: 100, min: 3, animate: "slow", 
 	                      value: -initCharge,
 	                      change: function(event, ui) {
 	                            forces[forcesIndex].charge(function(d) {return -(d.group+1)*ui.value});
@@ -1159,6 +1177,14 @@ $("#PlayMovieButton").click(function() {
       $( "#PlayMovieButton" ).button({label: "play"});
       clearInterval(tclock)
     }
+
+})
+
+$( "#ResetButton" ).button({label: "reset" });
+
+$("#ResetButton").click(function() {
+    globalTimeIndex = 0
+    LoadData()
 
 })
 }
