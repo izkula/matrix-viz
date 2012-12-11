@@ -1,6 +1,6 @@
 
 var width = 760,
-    height = 750;
+    height = 550;
 
 var threshold = 50; 
 var initCharge = -25
@@ -617,6 +617,8 @@ function RedrawGraphNoShow(parentCoords)
           }
       });
       forces[forcesIndex].start()
+
+      HighlightSelectedNodes(timeSeriesNodes)
 }
 
 
@@ -668,8 +670,20 @@ function RedrawGraph()
         .attr("class", "node")
         .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
         .style("opacity", 1.0)
-        .style("stroke-width", 1.0)   
-        .style("stroke", "white")                     
+       // .style("stroke-width", 1.0)   
+        .style("stroke-width", function(d) {
+          if(parseInt(d.name) in timeSeriesNodes) {
+            return highlightWidth
+          } 
+          return 1.0
+        })
+        //.style("stroke", "white")
+        .style("stroke", function(d) {
+          if(parseInt(d.name) in timeSeriesNodes) {
+            return highlightColor
+          }
+          return "white"
+        })                     
                   
 
         .style("fill", function(d) { globalID_dict[d.globalID] = d; 
@@ -777,11 +791,12 @@ function click(d)
     console.log("AlT!")
     console.log(d)
     if(d.name in timeSeriesNodes) {
+      RemoveHighlight(d.name)
       delete timeSeriesNodes[d.name]
     } else {
       timeSeriesNodes[d.name] = true;
     }
-    DrawLineGraph(timeSeriesNodes)
+    DrawAllLineGraphs(timeSeriesNodes)
 
   } else {
   //TO DO - NEED TO IMPLEMENT EXPANSION OF A CLUSTER 
@@ -812,9 +827,10 @@ function EnsureParentsAreVisible()
   for(var i =0; i<DictMax(node_dict); i++) {
     if (node_dict[i] == 1) {
       var node = data_arr[forcesIndex].nodes[i]
-      while(node.parent != -1) {
-        node_dict[node.parent] = 1
-        node = data_arr[forcesIndex].nodes[node.parent]
+      while(node.parent != -1 && data_arr[forcesIndex].nodes[node.parent] != -1) {
+        node_dict[data_arr[forcesIndex].nodes[node.parent]] = 1
+        console.log(data_arr[forcesIndex].nodes[node.parent])
+        node = data_arr[forcesIndex].nodes[data_arr[forcesIndex].nodes[node.parent].name]
       }
     }
   }
@@ -833,47 +849,140 @@ function getTimeSeries(tsNodes) {
   var seriesData = []
   for(node in tsNodes) {
     var currNode = data_arr[forcesIndex].nodes[node]
+
     var currTimeSeries = formatTimeSeriesForRickshaw(currNode['timeseries'])
 
     var currRSdatum = {}
     currRSdatum['data'] = currTimeSeries
     currRSdatum['color'] = 'steelblue'
-    currRSdatum['name'] = currNode
+    currRSdatum['name'] = currNode['name']
     seriesData.push(currRSdatum)
   }
   return seriesData
 }
+
+function RemoveHighlight(nodeNum) {
+  $('.node:contains("'+nodeNum+'")').filter(function() {
+      return $(this).text() == nodeNum
+    }).css({
+     'stroke-width': '1px',
+      stroke: 'white'
+  }) 
+}
+
+function HighlightSelectedNodes(tsNodes) {
+  for(var node in tsNodes) {
+    $('.node:contains("'+node+'")').filter(function() {
+      return $(this).text() == node
+    }).css({
+      'stroke-width': highlightWidth,
+      stroke: highlightColor
+    }) 
+  }
+}
+
 
 var h_ts = 400
 var w_ts = 500
 var timeSeriesNodes = {}
 var tsGraph
 var tsData = {}
-function DrawLineGraph(tsNodes) {
-  var tsData = getTimeSeries(tsNodes)
+var highlightColor = "salmon"
+var highlightWidth = '3px'
+function DrawAllLineGraphs(tsNodes) {
+  HighlightSelectedNodes(tsNodes)
+  var tsData = getTimeSeries(tsNodes)  
+  var numGraphs = Object.keys(tsNodes).length;
+  var graphHeight = (height - 40*numGraphs) / numGraphs 
+  // $('#timeSeries').html('')
+  // for(var i=0; i < numGraphs; i++) {
+  //   var graphId = "ts-chunk-"+i;
+  //   $('#timeSeries').append("<div id=\'"+graphId+"\'><div class='y-axis'></div><div class='tsChart'></div></div>")
+  //   DrawLineGraph(tsData[i], graphId, graphHeight)
+  // }  
+  $('#timeSeries').fadeOut('fast', function() {
+    $('#timeSeries').html('')
+    for(var i=0; i < numGraphs; i++) {
+    var graphId = "ts-chunk-"+i;
+      $('#timeSeries').append("<div class='tsChunk' id=\'"+graphId+"\'><div class='graphName'></div><a href='#' class='removeButton'>x</a><div class='y-axis'></div><div class='tsChart'></div></div>")
+      DrawLineGraph(tsData[i], graphId, graphHeight)
+    }  
+    $('#timeSeries').fadeIn('fast', function() {
+    })
 
-  $('#tsChart').html('')
-  $('#y-axis').html('')
 
-  tsGraph = new Rickshaw.Graph({
-      element: document.querySelector("#tsChart"),
+    $('.removeButton').click(function() {
+      var nodeToRemove = parseInt($(this).parent().find('.graphName').text())
+      delete timeSeriesNodes[nodeToRemove];
+      RemoveHighlight(nodeToRemove)
+      DrawAllLineGraphs(timeSeriesNodes)
+    })
+  })
+}
+
+function DrawLineGraph(lineGraphData, divId, ht) {
+  var graphSelector = $('#'+divId)
+  $('.graphName', graphSelector).html(lineGraphData['name'])
+  var graphElem = $('.tsChart', graphSelector)[0]
+  var axisElem = $('.y-axis', graphSelector)[0]
+
+  var graph = new Rickshaw.Graph({
+      element: graphElem,
       renderer: 'line',
       width: w_ts,
-      height: h_ts,
-      series: tsData
+      height: ht,
+      series: [lineGraphData],
+      min: 'auto'
   });
 
   var yAxis = new Rickshaw.Graph.Axis.Y({
-    graph: tsGraph,
-    element: document.getElementById('y-axis'),
+    graph: graph,
+    element: axisElem,
     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
     orientation: 'left'
   });
 
-  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+  // var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+  //   graph: graph,
+  //   formatter: function(series, x, y) {
+  //     // var date = '<span class="date">' + new Date(x * 1000).toUTCString() + '</span>';
+  //     // var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
+  //     var content = "(" + parseInt(x) + ", " + parseInt(y) + ")"
+  //     return content;
+  //   }
+//} );
 
-  tsGraph.render();
+  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+
+  graph.render();
 }
+
+// function DrawLineGraph(tsNodes) {
+//   var tsData = getTimeSeries(tsNodes)
+
+//   $('#tsChart').html('')
+//   $('#y-axis').html('')
+
+//   tsGraph = new Rickshaw.Graph({
+//       element: document.querySelector("#tsChart"),
+//       renderer: 'line',
+//       width: w_ts,
+//       height: h_ts,
+//       series: tsData,
+//       min: 'auto'
+//   });
+
+//   var yAxis = new Rickshaw.Graph.Axis.Y({
+//     graph: tsGraph,
+//     element: document.getElementById('y-axis'),
+//     tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+//     orientation: 'left'
+//   });
+
+//   var x_axis = new Rickshaw.Graph.Axis.Time( { graph: tsGraph } );
+
+//   tsGraph.render();
+// }
 
 function CopyUndoDicts()
 {
@@ -976,7 +1085,7 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
                                     if (data_arr[forcesIndex].nodes[i].metric >  globalClusterMetric ) {
                                           node_dict[i] = 0
                                     } else {
-                                      if (data_arr[forcesIndex].nodes[i].group % 2 == 0 || i == data_arr[forcesIndex].nodes.length - 1) {
+                                      if (CheckNode(data_arr[forcesIndex].nodes[i].group, 0, i, data_arr[forcesIndex].nodes.length)) {
                                           node_dict[i] = 1
                                         } else {
                                           node_dict[i] = 0
