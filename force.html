@@ -8,11 +8,13 @@
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
   <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
 <!--  <style>#CorrSlider { margin-top: 5px; margin-right: 10px; margin-left: 10px; width: 150px; height: 10px; float: left;}  </style> -->
-  <style>#RepulsionSlider { margin-top: 5px; margin-right: 10px; margin-left: 10px; width: 150px;  height: 10px; float: left; }  </style>
-  <style>#LevelSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
-   <style>#TimeSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
-   <style>#ClusterMetricSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
-   <style>#UndoButton { margin-left: 10px; height: 20px; float: left;}
+  <style>#RepulsionSlider { margin-top: 5px; margin-right: 0px; margin-left: 15px; width: 170px;  height: 10px; float: left; }  </style>
+  <style>#LevelSlider { margin-top: 5px; margin-right: 0px;margin-left: 15px; width: 170px; height: 10px; float: left; }   </style>
+   <style>#TimeSlider { margin-top: 5px; margin-right: 0px;margin-left: 15px; width: 170px; height: 10px; float: left; }   </style>
+   <style>#ClusterMetricSlider { margin-top: 5px; margin-right: 0px;margin-left: 15px; width: 170px; height: 10px; float: left; }   </style>
+   <style>#UndoButton { margin-left: 10px; margin-bottom: 10px; height: 30px; float: left;}
+       </style>
+  <style>#PlayMovieButton { margin-left: 10px; margin-bottom: 10px; height: 30px; float: left;}
        </style>
 
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
@@ -36,10 +38,10 @@
 
 .label {
   float:left;
-  width: 150px;
+  width: 170px;
   font-size:13px;
-  margin-left: 10px;
-  margin-right: 10px;
+  margin-left: 15px;
+  margin-right: 0px;
   font-family: sans-serif;
 }
 
@@ -120,24 +122,71 @@
   z-index: 1;
 }
 
+.titles{
+  width:100%;
+  height: 53px;
+  float:left;
+  margin-left: 10px;
+  border: 1px;
+  stroke: #fff;
+}
+
+.title{
+  font-size:30px;
+  color:#000;
+  float:left;
+  font-family: arial;
+}
+
+.subtitle{
+  font-size:15px;
+  color:#07f;
+  float:left;
+  width: 16%;
+  margin-top: 10px;
+   margin-bottom: 10px;
+  margin-left: 20px;
+}
+
+.instructions{
+  font-size:15px;
+  color:#000;
+  float:left;
+  width: 620px;
+  margin-top: 10px;
+   margin-bottom: 10px;
+  margin-left: 20px;
+  font-family: arial;
+}
+
 </style>
 <body>
 <!--<div class="label">Correlation threshold</div>-->
+<div class="titles">
+      <div class="title">NETS </div>
+      <div class="subtitle"> Nodal Exploration of Time Series </div>
+      <div class="instructions"> Click a node to expand, shift-click to contract, alt-click to show time series </div>
+</div>
+<br class="clearboth">
+
 <div class="label" width="100px">Repulsion</div>
 <div class="label">Hierarchical Cluster Level</div>
 <div class="label">Time</div>
-<div class="label">Maximum in-cluster correlation</div>
-
+<div class="label">Max in-cluster correlation</div>
+<div id="UndoButton"></div>
+<div id="PlayMovieButton"></div>
 
 
 <br class="clearboth">
 
 <!--<div id="CorrSlider"></div>-->
+
 <div id="RepulsionSlider"></div>
 <div id="LevelSlider"></div>
 <div id="TimeSlider"></div>
 <div id="ClusterMetricSlider"></div>
-<div id="UndoButton"><button>Undo</button></div>
+
+
 
 <br class="clearboth">
 <div id='plots'>

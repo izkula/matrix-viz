@@ -8,6 +8,9 @@ var hierarchyLevel = 4
 var maxTimeChunks = 8
 var globalTimeIndex = 0
 var forcesIndex = 0
+var MAX_TIME = 248
+var tclock = 0
+var playing = 0
 
 var globalClusterMetric = 0.8
 //var force; 
@@ -47,6 +50,8 @@ $(function() {
  // initializeSliders(force, svg, color);
   initializeSliders(svg, color);
   $("UndoButton").button("enable");
+  $("PlayMovieButton").button("enable");
+
 });
 
 function CheckNode(group, hierarchyLevel, i, length) {
@@ -103,7 +108,12 @@ function LoadData() {
     prev5_node_dict = {}
     CheckMaxHierarchyLevel(hierarchyLevel)
     FilterNodeDict(hierarchyLevel, node_dict)
-    CopyUndoDicts()
+    prev_node_dict = CopyDict(node_dict)
+    prev2_node_dict = CopyDict(prev_node_dict)
+    prev3_node_dict = CopyDict(prev2_node_dict)
+    prev4_node_dict = CopyDict(prev3_node_dict)
+    prev5_node_dict = CopyDict(prev4_node_dict)
+    
 
 
     forces[forcesIndex]
@@ -415,7 +425,7 @@ function filterLinks() {
           }
           var sourceindex = 0
           var targetindex = 0
-          console.log(element.source)
+        //  console.log(element.source)
 
           if(element.source=="undefined" || element.target =="undefined") { console.log("undefined"); return false}
           if (typeof element.source=="number" || typeof element.source=="string") {sourceindex = element.source}
@@ -451,11 +461,11 @@ function ChildrenDisplayed(d)
 }
 
 
-function ChooseFill(d) {
+function ChooseFill(d, negative) {
   //console.log(node_dict); 
   if(d.name == data_arr[forcesIndex].nodes.length - 1) {return "blue"} 
   else if (d.children[0] == d.name || !ChildrenDisplayed(d)) 
-    {return "orange"} 
+    {if (negative) {return "purple"} else {return "orange"} }
   else { return "lightblue" }
        // return color(d.group)
 }
@@ -628,7 +638,7 @@ function RedrawGraphNoShow(parentCoords)
 // `parentCoords` is an optional parameter used on expand-click 
 // to position the expanded nodes at the original position
 // of the parent
-function RedrawGraph()  
+function RedrawGraph(withNoMovement)  
 {
   console.log("redraw normal")
    // console.log("Redraw filt_nodes", filt_nodes)
@@ -648,11 +658,12 @@ function RedrawGraph()
 
       node.enter().append("circle")
         .attr("class", "node")
-        .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
+       // .attr("r", 5)//function(d) { return (d.size+ 3)/5 + 4})
         //.style("fill", function(d) { if (node_dict[d.name] == 0) {return #fff} else {return color(d.group) })
+        .attr("r", function(d) {return 4 + 40*Math.abs(d.timeseries[globalTimeIndex])})
         .style("fill", function(d) { //console.log("d", d); console.log('globalID_dict', globalID_dict);
                                      globalID_dict[d.globalID] = d;
-                                     return ChooseFill(d); })
+                                     return ChooseFill(d, d.timeseries[globalTimeIndex] < 0 ); })
         .style("opacity", 1.0)  
         .style("stroke-width", 1.0)  
         .style("stroke", "white")                     
@@ -668,7 +679,7 @@ function RedrawGraph()
        // .duration(1)
 
         .attr("class", "node")
-        .attr("r", 5)//function(d) {return (d.size + 3)/5 + 4})
+        .attr("r", function(d) {return 3 + 40*Math.abs(d.timeseries[globalTimeIndex])})//function(d) {return (d.size + 3)/5 + 4})
         .style("opacity", 1.0)
        // .style("stroke-width", 1.0)   
         .style("stroke-width", function(d) {
@@ -732,7 +743,11 @@ function RedrawGraph()
                 .attr("cy", function(d) { return d.y; });
           //}
       });
-          forces[forcesIndex].start()
+          if(withNoMovement == true) {
+              console.log("noMovement")
+          } else {
+            forces[forcesIndex].start()
+          }
 }
 
 
@@ -827,9 +842,14 @@ function EnsureParentsAreVisible()
   for(var i =0; i<DictMax(node_dict); i++) {
     if (node_dict[i] == 1) {
       var node = data_arr[forcesIndex].nodes[i]
-      while(node.parent != -1 && data_arr[forcesIndex].nodes[node.parent] != -1) {
-        node_dict[data_arr[forcesIndex].nodes[node.parent]] = 1
-        console.log(data_arr[forcesIndex].nodes[node.parent])
+      console.log("node", node.name)
+      console.log("node.parent", node.parent)
+      console.log("node.parent.parent", data_arr[forcesIndex].nodes[node.parent])
+
+      while(node.parent != -1 && data_arr[forcesIndex].nodes[node.parent].parent != -1) {
+
+        node_dict[data_arr[forcesIndex].nodes[node.parent].parent] = 1
+        //console.log(data_arr[forcesIndex].nodes[node.parent])
         node = data_arr[forcesIndex].nodes[data_arr[forcesIndex].nodes[node.parent].name]
       }
     }
@@ -952,7 +972,8 @@ function DrawLineGraph(lineGraphData, divId, ht) {
   //   }
 //} );
 
-  var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
+//THIS IS HOW YOU GET THE X AXIS
+ // var x_axis = new Rickshaw.Graph.Axis.Time( { graph: graph } );
 
   graph.render();
 }
@@ -996,7 +1017,7 @@ function CopyUndoDicts()
 
 //function initializeSliders(data, force, svg, color) {
 //function initializeSliders(force, svg, color) {
-  function initializeSliders(svg, color) {
+function initializeSliders(svg, color) {
   console.log('data,')
   console.log(data_arr[forcesIndex])
 	$( "#CorrSlider" ).slider({max: 100, min: 0, animate: "slow", 
@@ -1048,7 +1069,33 @@ function CopyUndoDicts()
 	                           } 
 	                          });
 
-  $( "#TimeSlider" ).slider({min: 0, max: maxTimeChunks, animate: "fast",
+  // $( "#TimeSlider" ).slider({min: 0, max: maxTimeChunks, animate: "fast",
+  //                             step: 1, value: globalTimeIndex, 
+  //                             change: function(event, ui) {
+  //                                 var index = ui.value;
+  //                                 if(index != globalTimeIndex) {
+  //                                   prevIndex = globalTimeIndex
+  //                                   globalTimeIndex = index
+
+  //                                   console.log("timeslider: nodes.length", data_arr[forcesIndex].nodes.length)
+  //                                  // TimeStepGraph(globalTimeIndex, prevIndex)
+  //                                   forcesIndex = globalTimeIndex
+  //                                   if(forces.hasOwnProperty(globalTimeIndex)) {
+  //                                  //    DrawForce()
+  //                                      LoadData()
+  //                                   } else {
+  //                                     LoadData()
+  //                                   }
+  //                                   console.log("timeslider: nodes.length", data.nodes.length)
+  //                                   var nodePositions = saveNodePositions();
+  //                                   LoadData(nodePositions)
+  //                                 }                                  
+  //                                 //FilterNodesAndLinks()
+  //                                 //RedrawGraph() 
+  //                            } 
+  //                           });
+
+  $( "#TimeSlider" ).slider({min: 0, max: MAX_TIME, animate: "fast",
                               step: 1, value: globalTimeIndex, 
                               change: function(event, ui) {
                                   var index = ui.value;
@@ -1056,22 +1103,9 @@ function CopyUndoDicts()
                                     prevIndex = globalTimeIndex
                                     globalTimeIndex = index
 
-                                    console.log("timeslider: nodes.length", data_arr[forcesIndex].nodes.length)
-                                   // TimeStepGraph(globalTimeIndex, prevIndex)
-                                    forcesIndex = globalTimeIndex
-                                    if(forces.hasOwnProperty(globalTimeIndex)) {
-                                   //    DrawForce()
-                                       LoadData()
-                                    } else {
-                                      LoadData()
-                                    }
-                                    console.log("timeslider: nodes.length", data.nodes.length)
-                                    var nodePositions = saveNodePositions();
-                                    LoadData(nodePositions)
-                                  }                                  
-                                  //FilterNodesAndLinks()
-                                  //RedrawGraph() 
-                             } 
+                                     RedrawGraph() 
+                                   } 
+                               }
                             });
 
 $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS BUGGY
@@ -1110,7 +1144,25 @@ $("#UndoButton").click(function() {
     FilterNodesAndLinks()
     RedrawGraph()
 })
+
+
+$( "#PlayMovieButton" ).button({label: "play" });
+
+$("#PlayMovieButton").click(function() {
+    playing = !playing
+    console.log("playing", playing)
+    if(playing) {
+       $( "#PlayMovieButton" ).button({label: "pause"});
+      tclock = setInterval(function() {if(globalTimeIndex < MAX_TIME) {$( "#TimeSlider" ).slider("value", globalTimeIndex);
+        console.log(globalTimeIndex); globalTimeIndex += 1; RedrawGraph(true)}}, 1000)
+    } else {
+      $( "#PlayMovieButton" ).button({label: "play"});
+      clearInterval(tclock)
+    }
+
+})
 }
+
 
 
 
