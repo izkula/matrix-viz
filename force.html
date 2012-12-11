@@ -7,12 +7,12 @@
   <link type="text/css" rel="stylesheet" href="rickshaw.css">
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
   <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
-  <style>#CorrSlider { margin-top: 5px; margin-right: 10px; margin-left: 10px; width: 150px; height: 10px; float: left;}  </style>
+<!--  <style>#CorrSlider { margin-top: 5px; margin-right: 10px; margin-left: 10px; width: 150px; height: 10px; float: left;}  </style> -->
   <style>#RepulsionSlider { margin-top: 5px; margin-right: 10px; margin-left: 10px; width: 150px;  height: 10px; float: left; }  </style>
   <style>#LevelSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
    <style>#TimeSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
    <style>#ClusterMetricSlider { margin-top: 5px; margin-right: 10px;margin-left: 10px; width: 150px; height: 10px; float: left; }   </style>
-   <style>#UndoButton { margin-left: 10px; float: left;}
+   <style>#UndoButton { margin-left: 10px; height: 20px; float: left;}
        </style>
 
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
@@ -57,6 +57,7 @@
   font-family: Arial, Helvetica, sans-serif;
   float:left;
   height: 750;
+  margin-right: 5;
 
 }
 
@@ -98,9 +99,9 @@
   display:inline-block;
   color:#777777;
   font-family:arial;
-  font-size:13px;
+  font-size:8px;
   font-weight:normal;
-  padding:6px 11px;
+  padding:1px 6px;
   text-decoration:none;
   text-shadow:1px 1px 0px #ffffff;
 }.removeButton:hover {
@@ -121,7 +122,7 @@
 
 </style>
 <body>
-<div class="label">Correlation threshold</div>
+<!--<div class="label">Correlation threshold</div>-->
 <div class="label" width="100px">Repulsion</div>
 <div class="label">Hierarchical Cluster Level</div>
 <div class="label">Time</div>
@@ -131,12 +132,12 @@
 
 <br class="clearboth">
 
-<div id="CorrSlider"></div>
+<!--<div id="CorrSlider"></div>-->
 <div id="RepulsionSlider"></div>
 <div id="LevelSlider"></div>
 <div id="TimeSlider"></div>
 <div id="ClusterMetricSlider"></div>
-<div id="UndoButton"></div>
+<div id="UndoButton"><button>Undo</button></div>
 
 <br class="clearboth">
 <div id='plots'>

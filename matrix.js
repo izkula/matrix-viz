@@ -1098,7 +1098,7 @@ $( "#ClusterMetricSlider" ).slider({min: 0, max: 1, animate: "fast", //THIS IS B
                          } 
                         });
 
-$( "#UndoButton" ).button({ label: "Undo" });
+$( "#UndoButton" ).button({label: "undo" });
 
 $("#UndoButton").click(function() {
     console.log("undo")
